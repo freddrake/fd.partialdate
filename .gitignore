@@ -1,0 +1,9 @@
+/.coverage
+/.coverage.*
+/.tox/
+/build/
+/dist/
+/htmlcov/
+/src/fd.partialdate.egg-info/
+__pycache__/
+*.pyc

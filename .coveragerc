@@ -1,0 +1,23 @@
+
+[html]
+title = fd.partialdate coverage
+
+[report]
+precision = 1
+
+[run]
+branch = True
+source = fd.partialdate
+
+[paths]
+#
+# This declares that these paths are equivalent.
+#
+# Our tox.ini runs coverage in parallel mode, and combines results
+# across Python versions at the end.  This lets us review the coverage
+# of Python-version-specific bits of code in one report.
+#
+source =
+   fd
+   .tox/*/lib/python*/site-packages/fd
+   .tox/pypy*/site-packages/fd
