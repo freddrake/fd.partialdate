@@ -3,6 +3,7 @@
 /.tox/
 /build/
 /dist/
+/docs/build/
 /htmlcov/
 /src/fd.partialdate.egg-info/
 __pycache__/
