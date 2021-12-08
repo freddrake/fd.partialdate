@@ -18,6 +18,6 @@ source = fd.partialdate
 # of Python-version-specific bits of code in one report.
 #
 source =
-   fd
+   src/fd
    .tox/*/lib/python*/site-packages/fd
    .tox/pypy*/site-packages/fd
