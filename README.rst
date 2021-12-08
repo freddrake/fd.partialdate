@@ -8,7 +8,7 @@ the least-significant or most-significant bits.  (For example, a date
 might include just the year, the year and month, or the month and day,
 but will never be missing the month but not the day.)
 
-Serialization only supports the most expanded format from ISO 8601.
+Serialization only supports the expanded format from ISO 8601.
 
 
 Release history

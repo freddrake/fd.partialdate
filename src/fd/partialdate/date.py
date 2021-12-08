@@ -62,13 +62,23 @@ class Date:
 
     def __repr__(self):
         cls = self.__class__
-        clsname = cls.__module__ + '.' + cls.__qualname__
-        repr = clsname + '(' + str(self.year)
-        if self.month:
-            repr += ', ' + str(self.month)
-            if self.day:
-                repr += ', ' + str(self.day)
-        return repr + ')'
+        use_keywords = False
+        parts = []
+
+        def add_arg(name, value):
+            nonlocal use_keywords
+            if value is None:
+                use_keywords = True
+            elif use_keywords:
+                parts.append(f'{name}={value}')
+            else:
+                parts.append(str(value))
+
+        add_arg('year', self.year)
+        add_arg('month', self.month)
+        add_arg('day', self.day)
+
+        return f'{cls.__module__}.{cls.__qualname__}({", ".join(parts)})'
 
     def __str__(self):
         return self.isoformat()

@@ -358,3 +358,18 @@ class DateTestCase(unittest.TestCase):
             self.assertEqual(pdate, date)
             self.assertGreater(pdate, factory(day=day-1))
             self.assertLess(pdate, factory(day=day+1))
+
+    def test_repr_positional(self):
+        date = fd.partialdate.date.Date(2012)
+        self.assertEqual(repr(date), 'fd.partialdate.date.Date(2012)')
+        date = fd.partialdate.date.Date(2012, 12)
+        self.assertEqual(repr(date), 'fd.partialdate.date.Date(2012, 12)')
+        date = fd.partialdate.date.Date(2012, 12, 8)
+        self.assertEqual(repr(date), 'fd.partialdate.date.Date(2012, 12, 8)')
+
+    def test_repr_keyword(self):
+        date = fd.partialdate.date.Date(month=12, day=8)
+        self.assertEqual(repr(date),
+                         'fd.partialdate.date.Date(month=12, day=8)')
+        date = fd.partialdate.date.Date(day=8)
+        self.assertEqual(repr(date), 'fd.partialdate.date.Date(day=8)')
