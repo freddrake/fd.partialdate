@@ -1,11 +1,12 @@
 """\
-Date objcet that can represent partial dates: year-only, year+month, as
+Date object that can represent partial dates: year-only, year+month, as
 well as year+month+date.
 
 """
 
 import datetime
 import functools
+import re
 
 
 _days_in_month = {
@@ -22,6 +23,18 @@ _days_in_month = {
     11: 30,
     12: 31,
 }
+
+_re = r"""
+    (?P<year>-|\d{4})
+    (?:-
+        (?P<month>-|\d{2})
+        (?:-
+            (?P<day>-|\d{2})
+         )?
+     )?
+    $
+"""
+_rx = re.compile(_re, re.VERBOSE)
 
 
 @functools.total_ordering
@@ -134,6 +147,30 @@ class Date:
             (f'{self.day:02}' if self.day else '-'),
         ]
         return '-'.join(parts).rstrip('-')
+
+    @classmethod
+    def isoparse(cls, text):
+        m = _rx.match(text)
+        # Special case for ISO 8601 date with all components omitted.
+        if m is None or text == '-----':
+            e = ValueError(
+                f'text cannot be parsed as an ISO 8601 date: {text!r}')
+            e.value = text
+            raise e
+        year, month, day = m.group('year', 'month', 'day')
+        if year == '-':
+            year = None
+        if month == '-':
+            month = None
+        if day == '-':
+            day = None
+        if year:
+            year = int(year)
+        if month:
+            month = int(month)
+        if day:
+            day = int(day)
+        return cls(year=year, month=month, day=day)
 
 
 Date.min = Date(1, 1, 1)

@@ -373,3 +373,68 @@ class DateTestCase(unittest.TestCase):
                          'fd.partialdate.date.Date(month=12, day=8)')
         date = fd.partialdate.date.Date(day=8)
         self.assertEqual(repr(date), 'fd.partialdate.date.Date(day=8)')
+
+    def test_ymd_isoparse(self):
+        date = fd.partialdate.date.Date.isoparse('2021-12-08')
+        self.assertEqual(date.year, 2021)
+        self.assertEqual(date.month, 12)
+        self.assertEqual(date.day, 8)
+        self.assertFalse(date.partial)
+        self.assertEqual(date.isoformat(), '2021-12-08')
+        self.assertEqual(str(date), '2021-12-08')
+
+    def test_ym_isoparse(self):
+        for value in ('2021-12', '2021-12--'):
+            date = fd.partialdate.date.Date.isoparse(value)
+            self.assertEqual(date.year, 2021)
+            self.assertEqual(date.month, 12)
+            self.assertEqual(date.day, None)
+            self.assertTrue(date.partial)
+            self.assertEqual(date.isoformat(), '2021-12')
+            self.assertEqual(str(date), '2021-12')
+
+    def test_y_isoparse(self):
+        for value in ('2021', '2021--', '2021----'):
+            date = fd.partialdate.date.Date.isoparse(value)
+            self.assertEqual(date.year, 2021)
+            self.assertEqual(date.month, None)
+            self.assertEqual(date.day, None)
+            self.assertTrue(date.partial)
+            self.assertEqual(date.isoformat(), '2021')
+            self.assertEqual(str(date), '2021')
+
+    def test_md_isoparse(self):
+        date = fd.partialdate.date.Date.isoparse('--12-08')
+        self.assertEqual(date.year, None)
+        self.assertEqual(date.month, 12)
+        self.assertEqual(date.day, 8)
+        self.assertTrue(date.partial)
+        self.assertEqual(date.isoformat(), '--12-08')
+        self.assertEqual(str(date), '--12-08')
+
+    def test_d_isoparse(self):
+        date = fd.partialdate.date.Date.isoparse('----08')
+        self.assertEqual(date.year, None)
+        self.assertEqual(date.month, None)
+        self.assertEqual(date.day, 8)
+        self.assertTrue(date.partial)
+        self.assertEqual(date.isoformat(), '----08')
+        self.assertEqual(str(date), '----08')
+
+    def test_isoparse_failures(self):
+
+        def check(value):
+            with self.assertRaises(ValueError) as cm:
+                fd.partialdate.date.Date.isoparse(value)
+            self.assertEqual(cm.exception.value, value)
+            message = str(cm.exception)
+            self.assertIn(repr(value), message)
+            self.assertIn('text cannot be parsed', message)
+
+        check('junky stuff')
+        check('2012-')
+        check('2012-6')
+        check('2012-6-10')
+        check('2012-10-6')
+        # All components are omitted.
+        check('-----')
