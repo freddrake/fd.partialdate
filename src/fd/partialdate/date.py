@@ -1,12 +1,14 @@
 """\
-Date object that can represent partial dates: year-only, year+month, as
-well as year+month+date.
+Date object that can represent partial dates: year-only, year+month,
+year+month+day, month-day, or just day.
 
 """
 
 import datetime
 import functools
 import re
+
+import fd.partialdate.exceptions
 
 
 _days_in_month = {
@@ -50,22 +52,26 @@ class Date:
                 raise ValueError('must specify year or day')
         if year is not None:
             if not (1 <= year <= 9999):
-                raise ValueError('year is out of range')
+                raise fd.partialdate.exceptions.RangeError(
+                    'year', year, 1, 9999)
         if month is None:
             if year is not None and day is not None:
                 raise ValueError('cannot specify year and day without month')
             if day is not None:
                 if not (1 <= day <= 31):
-                    raise ValueError('day is out of range')
+                    raise fd.partialdate.exceptions.RangeError(
+                        'day', day, 1, 31)
         else:
             if not (1 <= month <= 12):
-                raise ValueError('month is out of range')
+                raise fd.partialdate.exceptions.RangeError(
+                    'month', month, 1, 12)
             if day is not None:
                 dim = _days_in_month[month]
                 if year and year % 4 and month == 2:
                     dim -= 1
                 if not (1 <= day <= dim):
-                    raise ValueError('day is out of range')
+                    raise fd.partialdate.exceptions.RangeError(
+                        'day', day, 1, dim)
         self.year = year
         self.month = month
         self.day = day
@@ -153,10 +159,8 @@ class Date:
         m = _rx.match(text)
         # Special case for ISO 8601 date with all components omitted.
         if m is None or text == '-----':
-            e = ValueError(
-                f'text cannot be parsed as an ISO 8601 date: {text!r}')
-            e.value = text
-            raise e
+            raise fd.partialdate.exceptions.ParseError(
+                'ISO 8601 date', text)
         year, month, day = [
             None if v in ('-', None) else int(v)
             for v in m.group('year', 'month', 'day')

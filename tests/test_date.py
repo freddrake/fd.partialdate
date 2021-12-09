@@ -7,9 +7,10 @@ import datetime
 import unittest
 
 import fd.partialdate.date
+import tests.utils
 
 
-class DateTestCase(unittest.TestCase):
+class DateTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
 
     def test_ymd_construction(self):
         date = fd.partialdate.date.Date(2021, 12, 6)
@@ -76,25 +77,24 @@ class DateTestCase(unittest.TestCase):
 
     def test_year_range_check(self):
         for bad_year in (-42, -1, 0, 10000, 424242):
-            with self.assertRaises(ValueError) as cm:
+            with self.assert_range_error() as cm:
                 fd.partialdate.date.Date(year=bad_year)
             message = str(cm.exception)
-            self.assertEqual(message, 'year is out of range')
+            self.assertIn('year is out of range [1..9999]', message)
 
     def test_month_range_check(self):
         for bad_month in (-42, -1, 0, 13, 42, 10000):
-            with self.assertRaises(ValueError) as cm:
+            with self.assert_range_error() as cm:
                 fd.partialdate.date.Date(year=2021, month=bad_month)
             message = str(cm.exception)
-            self.assertEqual(message, 'month is out of range')
+            self.assertIn('month is out of range [1..12]', message)
 
     def test_day_range_check_fully_specified(self):
         for bad_day in (-42, -1, 0, 32, 42, 10000):
-            with self.assertRaises(ValueError) as cm:
-                fd.partialdate.date.Date(
-                    year=2021, month=12, day=bad_day)
+            with self.assert_range_error() as cm:
+                fd.partialdate.date.Date(year=2021, month=12, day=bad_day)
             message = str(cm.exception)
-            self.assertEqual(message, 'day is out of range')
+            self.assertIn('day is out of range [1..31]', message)
 
     def test_day_range_check_february_leap_years(self):
         for year in (4, 1992, 2000, 2004, 2016, 2020, 2024, 9996):
@@ -109,11 +109,10 @@ class DateTestCase(unittest.TestCase):
             self.assertEqual(date.day, 29)
 
             for bad_day in (-42, -1, 0, 30, 31, 32, 42, 10000):
-                with self.assertRaises(ValueError) as cm:
-                    fd.partialdate.date.Date(
-                        year=year, month=2, day=bad_day)
+                with self.assert_range_error() as cm:
+                    fd.partialdate.date.Date(year=year, month=2, day=bad_day)
                 message = str(cm.exception)
-                self.assertEqual(message, 'day is out of range')
+                self.assertIn('day is out of range [1..29]', message)
 
     def test_day_range_check_february_non_leap_years(self):
         for year in (1, 1989, 1997, 2001, 2013, 2017, 2021, 9993,
@@ -125,11 +124,10 @@ class DateTestCase(unittest.TestCase):
             self.assertEqual(date.day, 28)
 
             for bad_day in (-42, -1, 0, 29, 30, 31, 32, 42, 10000):
-                with self.assertRaises(ValueError) as cm:
-                    fd.partialdate.date.Date(
-                        year=year, month=2, day=bad_day)
+                with self.assert_range_error() as cm:
+                    fd.partialdate.date.Date(year=year, month=2, day=bad_day)
                 message = str(cm.exception)
-                self.assertEqual(message, 'day is out of range')
+                self.assertIn('day is out of range [1..28]', message)
 
     def test_day_range_check_february_unspecified_years(self):
         date = fd.partialdate.date.Date(None, 2, 28)
@@ -143,11 +141,10 @@ class DateTestCase(unittest.TestCase):
         self.assertEqual(date.day, 29)
 
         for bad_day in (-42, -1, 0, 30, 31, 32, 42, 10000):
-            with self.assertRaises(ValueError) as cm:
-                fd.partialdate.date.Date(
-                    year=None, month=2, day=bad_day)
+            with self.assert_range_error() as cm:
+                fd.partialdate.date.Date(year=None, month=2, day=bad_day)
             message = str(cm.exception)
-            self.assertEqual(message, 'day is out of range')
+            self.assertIn('day is out of range [1..29]', message)
 
     def test_day_range_check_30day_months(self):
         for month in (4, 6, 9, 11):
@@ -157,11 +154,11 @@ class DateTestCase(unittest.TestCase):
             self.assertEqual(date.day, 30)
 
             for bad_day in (-42, -1, 0, 31, 32, 42, 10000):
-                with self.assertRaises(ValueError) as cm:
+                with self.assert_range_error() as cm:
                     fd.partialdate.date.Date(
-                        year=None, month=2, day=bad_day)
+                        year=None, month=month, day=bad_day)
                 message = str(cm.exception)
-                self.assertEqual(message, 'day is out of range')
+                self.assertIn('day is out of range [1..30]', message)
 
     def test_day_range_check_31day_months(self):
         for month in (1, 3, 5, 7, 8, 10, 12):
@@ -171,11 +168,11 @@ class DateTestCase(unittest.TestCase):
             self.assertEqual(date.day, 31)
 
             for bad_day in (-42, -1, 0, 32, 42, 10000):
-                with self.assertRaises(ValueError) as cm:
+                with self.assert_range_error() as cm:
                     fd.partialdate.date.Date(
-                        year=None, month=2, day=bad_day)
+                        year=None, month=month, day=bad_day)
                 message = str(cm.exception)
-                self.assertEqual(message, 'day is out of range')
+                self.assertIn('day is out of range [1..31]', message)
 
     def test_day_range_check_unspecified_year_month(self):
         for day in (1, 28, 29, 30, 31):
@@ -185,11 +182,10 @@ class DateTestCase(unittest.TestCase):
             self.assertEqual(date.day, day)
 
         for bad_day in (-42, -1, 0, 32, 42, 10000):
-            with self.assertRaises(ValueError) as cm:
-                fd.partialdate.date.Date(
-                    year=None, month=None, day=bad_day)
+            with self.assert_range_error() as cm:
+                fd.partialdate.date.Date(year=None, month=None, day=bad_day)
             message = str(cm.exception)
-            self.assertEqual(message, 'day is out of range')
+            self.assertIn('day is out of range [1..31]', message)
 
     def test_rando_comparison_fully_specified(self):
         for ymd in [(2, 2, 2), (2021, 11, 8), (9998, 11, 29)]:
@@ -424,12 +420,15 @@ class DateTestCase(unittest.TestCase):
     def test_isoparse_failures(self):
 
         def check(value):
-            with self.assertRaises(ValueError) as cm:
+            with self.assert_parse_error() as cm:
                 fd.partialdate.date.Date.isoparse(value)
             self.assertEqual(cm.exception.value, value)
             message = str(cm.exception)
             self.assertIn(repr(value), message)
             self.assertIn('text cannot be parsed', message)
+            self.assertIn(cm.exception.what, message)
+            self.assertEqual(cm.exception.what, 'ISO 8601 date')
+            self.assertEqual(cm.exception.value, value)
 
         check('junky stuff')
         check('2012-')
