@@ -157,19 +157,10 @@ class Date:
                 f'text cannot be parsed as an ISO 8601 date: {text!r}')
             e.value = text
             raise e
-        year, month, day = m.group('year', 'month', 'day')
-        if year == '-':
-            year = None
-        if month == '-':
-            month = None
-        if day == '-':
-            day = None
-        if year:
-            year = int(year)
-        if month:
-            month = int(month)
-        if day:
-            day = int(day)
+        year, month, day = [
+            None if v in ('-', None) else int(v)
+            for v in m.group('year', 'month', 'day')
+        ]
         return cls(year=year, month=month, day=day)
 
 
