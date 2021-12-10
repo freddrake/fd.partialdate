@@ -140,7 +140,12 @@ class Time:
             )
         else:
             return NotImplemented
-        sparts = bool(self.hour), bool(self.minute), bool(self.second), 0
+        sparts = (
+            self.hour is not None,
+            self.minute is not None,
+            self.second is not None,
+            True,
+        )
         if False in sparts or False in oparts:
             # No need to check for ValueError; every case will include
             # at least one True value since we disallow completely

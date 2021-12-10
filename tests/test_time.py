@@ -194,9 +194,9 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
     #
     # Where most-significant bits aren't aligned, ValueError is raised.
 
-    def test_time_comparison_y_specified(self):
+    def test_time_comparison_h_specified(self):
         factory = datetime.time
-        for hms in [(2, 2, 2), (21, 11, 8), (23, 59, 59)]:
+        for hms in [(0, 0, 0), (2, 2, 2), (21, 11, 8), (23, 59, 59)]:
             hour, minute, second = hms
             ptime = fd.partialdate.time.Time(hour)
             time = factory(*hms)
@@ -206,7 +206,7 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
 
     def test_time_comparison_hm_specified(self):
         factory = datetime.time
-        for hms in [(2, 2, 2), (21, 11, 8), (23, 59, 59)]:
+        for hms in [(0, 0, 0), (2, 2, 2), (21, 11, 8), (23, 59, 59)]:
             hour, minute, second = hms
             ptime = fd.partialdate.time.Time(hour, minute)
             time = factory(*hms)
@@ -216,7 +216,7 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
 
     def test_time_comparison_ms_specified(self):
         factory = datetime.time
-        for hms in [(2, 2, 2), (21, 11, 8), (22, 58, 58)]:
+        for hms in [(0, 0, 0), (2, 2, 2), (21, 11, 8), (22, 58, 58)]:
             hour, minute, second = hms
             ptime = fd.partialdate.time.Time(minute=minute, second=second)
             time = factory(*hms)
@@ -238,7 +238,7 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
 
     def test_comparison_fully_specified(self):
         factory = fd.partialdate.time.Time
-        for hms in [(2, 2, 2), (21, 11, 8), (22, 58, 58)]:
+        for hms in [(1, 1, 1), (21, 11, 8), (22, 58, 58)]:
             hour, minute, second = hms
             ptime = fd.partialdate.time.Time(*hms)
             time = factory(*hms)
@@ -253,7 +253,7 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
 
     def test_comparison_partially_specified(self):
         factory = fd.partialdate.time.Time
-        for hms in [(2, 2, 2), (21, 11, 8), (22, 58, 58)]:
+        for hms in [(1, 1, 1), (21, 11, 8), (22, 58, 58)]:
             hour, minute, second = hms
 
             ptime = factory(hour=hour)
