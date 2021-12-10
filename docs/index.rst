@@ -6,3 +6,4 @@ keeperINSIGHT Service Implementation
 
     exceptions
     date
+    time
