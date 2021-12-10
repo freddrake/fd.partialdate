@@ -2,6 +2,10 @@
 Date object that can represent partial dates: year-only, year+month,
 year+month+day, month-day, or just day.
 
+Note that provided components must be contiguous and include the
+most-significant or least-significant component; month alone cannot be
+specified or omitted.
+
 """
 
 import datetime
@@ -112,10 +116,10 @@ class Date:
         if isinstance(other, datetime.date):
             odata = other.year, other.month, other.day
         elif isinstance(other, Date):
-            odata = other.year or 0, other.month or 0, other.day or 0
+            odata = other.year or -1, other.month or -1, other.day or -1
         else:
             return NotImplemented
-        sdata = self.year or 0, self.month or 0, self.day or 0
+        sdata = self.year or -1, self.month or -1, self.day or -1
         return sdata == odata
 
     def __lt__(self, other):
@@ -129,7 +133,7 @@ class Date:
             odata = other.year, other.month, other.day
             oparts = True, True, True
         elif isinstance(other, Date):
-            odata = other.year or 0, other.month or 0, other.day or 0
+            odata = other.year or -1, other.month or -1, other.day or -1
             oparts = bool(other.year), bool(other.month), bool(other.day)
         else:
             return NotImplemented
@@ -143,7 +147,7 @@ class Date:
             if oprecision != sprecision:
                 raise ValueError('ordering not supported between'
                                  ' incompatible partial dates')
-        sdata = self.year or 0, self.month or 0, self.day or 0
+        sdata = self.year or -1, self.month or -1, self.day or -1
         return sdata < odata
 
     def isoformat(self):
