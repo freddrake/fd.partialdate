@@ -436,6 +436,76 @@ class DateTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
             self.assertEqual(date.isoformat(), '2021-12')
             self.assertEqual(str(date), '2021-12')
 
+    def test_o_isoparse(self):
+        # breakpoint()
+        for value in ('--001', '--032', '--365', '--366', '--999'):
+            with self.assert_parse_error() as cm:
+                fd.partialdate.date.Date.isoparse(value)
+            self.assertEqual(cm.exception.value, value)
+            self.assertEqual(cm.exception.what, 'ISO 8601 date')
+
+    def test_yo_isoparse(self):
+        date = fd.partialdate.date.Date.isoparse('0000-001')
+        self.assertEqual(date.year, 0)
+        self.assertEqual(date.month, 1)
+        self.assertEqual(date.day, 1)
+        self.assertFalse(date.partial)
+        self.assertEqual(date.isoformat(), '0000-01-01')
+        self.assertEqual(str(date), '0000-01-01')
+
+        # Not leap year; last day of year.
+        date = fd.partialdate.date.Date.isoparse('0003-365')
+        self.assertEqual(date.year, 3)
+        self.assertEqual(date.month, 12)
+        self.assertEqual(date.day, 31)
+        self.assertFalse(date.partial)
+        self.assertEqual(date.isoformat(), '0003-12-31')
+        self.assertEqual(str(date), '0003-12-31')
+
+        # Leap year; last day of year.
+        date = fd.partialdate.date.Date.isoparse('0004-366')
+        self.assertEqual(date.year, 4)
+        self.assertEqual(date.month, 12)
+        self.assertEqual(date.day, 31)
+        self.assertFalse(date.partial)
+        self.assertEqual(date.isoformat(), '0004-12-31')
+        self.assertEqual(str(date), '0004-12-31')
+
+        # Not leap year; last day of February.
+        date = fd.partialdate.date.Date.isoparse('2000-060')
+        self.assertEqual(date.year, 2000)
+        self.assertEqual(date.month, 2)
+        self.assertEqual(date.day, 29)
+        self.assertFalse(date.partial)
+        self.assertEqual(date.isoformat(), '2000-02-29')
+        self.assertEqual(str(date), '2000-02-29')
+
+        # Not leap year; first day of March.
+        date = fd.partialdate.date.Date.isoparse('2001-060')
+        self.assertEqual(date.year, 2001)
+        self.assertEqual(date.month, 3)
+        self.assertEqual(date.day, 1)
+        self.assertFalse(date.partial)
+        self.assertEqual(date.isoformat(), '2001-03-01')
+        self.assertEqual(str(date), '2001-03-01')
+
+        for value, oday in {'0000-367': 367, '1960-999': 999}.items():
+            with self.assert_range_error() as cm:
+                fd.partialdate.date.Date.isoparse(value)
+            self.assertEqual(cm.exception.field, 'ordinal day')
+            self.assertEqual(cm.exception.min, 1)
+            self.assertEqual(cm.exception.max, 366)
+            self.assertEqual(cm.exception.value, oday)
+
+        for value, oday in {'0001-366': 366, '1961-999': 999,
+                            '9999-999': 999}.items():
+            with self.assert_range_error() as cm:
+                fd.partialdate.date.Date.isoparse(value)
+            self.assertEqual(cm.exception.field, 'ordinal day')
+            self.assertEqual(cm.exception.min, 1)
+            self.assertEqual(cm.exception.max, 365)
+            self.assertEqual(cm.exception.value, oday)
+
     def test_y_isoparse(self):
         for value in ('0000', '0000--', '0000----'):
             date = fd.partialdate.date.Date.isoparse(value)
@@ -486,6 +556,8 @@ class DateTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
             self.assertEqual(cm.exception.value, value)
 
         check('junky stuff')
+        check('-365')
+        check('--1257')
         check('2012-')
         check('2012-6')
         check('2012-6-10')

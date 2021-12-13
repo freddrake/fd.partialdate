@@ -33,10 +33,13 @@ _days_in_month = {
 _re = r"""
     (?P<year>-|\d{4})
     (?:-
-        (?P<month>-|\d{2})
-        (?:-
-            (?P<day>-|\d{2})
-         )?
+        (?:
+            (?:
+                (?P<month>-|\d{2})
+                (?:-(?P<day>-|\d{2}))?
+             )
+            | (?P<ordinal>\d{3})
+         )
      )?
     $
 """
@@ -190,10 +193,28 @@ class Date:
         if m is None or text == '-----':
             raise fd.partialdate.exceptions.ParseError(
                 'ISO 8601 date', text)
-        year, month, day = [
+        year, month, day, ordinal = [
             None if v in ('-', None) else int(v)
-            for v in m.group('year', 'month', 'day')
+            for v in m.group('year', 'month', 'day', 'ordinal')
         ]
+        if ordinal is not None:
+            if year is None:
+                raise fd.partialdate.exceptions.ParseError(
+                    'ISO 8601 date', text)
+            isleap = (year % 4) == 0
+            dims = sorted(_days_in_month.items())
+            remaining = ordinal
+            while dims:
+                month, dim = dims.pop(0)
+                if month == 2 and not isleap:
+                    dim -= 1
+                if remaining <= dim:
+                    day = remaining
+                    break
+                remaining -= dim
+            else:
+                raise fd.partialdate.exceptions.RangeError(
+                    'ordinal day', ordinal, 1, 365 + isleap)
         return cls(year=year, month=month, day=day)
 
 
