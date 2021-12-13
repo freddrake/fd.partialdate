@@ -13,6 +13,14 @@ import tests.utils
 class DateTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
 
     def test_ymd_construction(self):
+        date = fd.partialdate.date.Date(0, 12, 6)
+        self.assertEqual(date.year, 0)
+        self.assertEqual(date.month, 12)
+        self.assertEqual(date.day, 6)
+        self.assertFalse(date.partial)
+        self.assertEqual(date.isoformat(), '0000-12-06')
+        self.assertEqual(str(date), '0000-12-06')
+
         date = fd.partialdate.date.Date(2021, 12, 6)
         self.assertEqual(date.year, 2021)
         self.assertEqual(date.month, 12)
@@ -22,6 +30,14 @@ class DateTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         self.assertEqual(str(date), '2021-12-06')
 
     def test_ym_construction(self):
+        date = fd.partialdate.date.Date(0, 12)
+        self.assertEqual(date.year, 0)
+        self.assertEqual(date.month, 12)
+        self.assertEqual(date.day, None)
+        self.assertTrue(date.partial)
+        self.assertEqual(date.isoformat(), '0000-12')
+        self.assertEqual(str(date), '0000-12')
+
         date = fd.partialdate.date.Date(2021, 12)
         self.assertEqual(date.year, 2021)
         self.assertEqual(date.month, 12)
@@ -31,6 +47,14 @@ class DateTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         self.assertEqual(str(date), '2021-12')
 
     def test_y_construction(self):
+        date = fd.partialdate.date.Date(0)
+        self.assertEqual(date.year, 0)
+        self.assertEqual(date.month, None)
+        self.assertEqual(date.day, None)
+        self.assertTrue(date.partial)
+        self.assertEqual(date.isoformat(), '0000')
+        self.assertEqual(str(date), '0000')
+
         date = fd.partialdate.date.Date(2021)
         self.assertEqual(date.year, 2021)
         self.assertEqual(date.month, None)
@@ -59,6 +83,11 @@ class DateTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
 
     def test_yd_construction(self):
         with self.assertRaises(ValueError) as cm:
+            fd.partialdate.date.Date(0, day=6)
+        self.assertEqual(str(cm.exception),
+                         'cannot specify year and day without month')
+
+        with self.assertRaises(ValueError) as cm:
             fd.partialdate.date.Date(2021, day=6)
         self.assertEqual(str(cm.exception),
                          'cannot specify year and day without month')
@@ -76,11 +105,11 @@ class DateTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
                          'must specify year or day')
 
     def test_year_range_check(self):
-        for bad_year in (-42, -1, 0, 10000, 424242):
+        for bad_year in (-42, -2, -1, 10000, 424242):
             with self.assert_range_error() as cm:
                 fd.partialdate.date.Date(year=bad_year)
             message = str(cm.exception)
-            self.assertIn('year is out of range [1..9999]', message)
+            self.assertIn('year is out of range [0..9999]', message)
 
     def test_month_range_check(self):
         for bad_month in (-42, -1, 0, 13, 42, 10000):
@@ -97,7 +126,7 @@ class DateTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
             self.assertIn('day is out of range [1..31]', message)
 
     def test_day_range_check_february_leap_years(self):
-        for year in (4, 1992, 2000, 2004, 2016, 2020, 2024, 9996):
+        for year in (0, 4, 1992, 2000, 2004, 2016, 2020, 2024, 9996):
             date = fd.partialdate.date.Date(year, 2, 28)
             self.assertEqual(date.year, year)
             self.assertEqual(date.month, 2)
@@ -356,6 +385,8 @@ class DateTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
             self.assertLess(pdate, factory(day=day+1))
 
     def test_repr_positional(self):
+        date = fd.partialdate.date.Date(0)
+        self.assertEqual(repr(date), 'fd.partialdate.date.Date(0)')
         date = fd.partialdate.date.Date(2012)
         self.assertEqual(repr(date), 'fd.partialdate.date.Date(2012)')
         date = fd.partialdate.date.Date(2012, 12)
@@ -371,6 +402,14 @@ class DateTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         self.assertEqual(repr(date), 'fd.partialdate.date.Date(day=8)')
 
     def test_ymd_isoparse(self):
+        date = fd.partialdate.date.Date.isoparse('0000-01-01')
+        self.assertEqual(date.year, 0)
+        self.assertEqual(date.month, 1)
+        self.assertEqual(date.day, 1)
+        self.assertFalse(date.partial)
+        self.assertEqual(date.isoformat(), '0000-01-01')
+        self.assertEqual(str(date), '0000-01-01')
+
         date = fd.partialdate.date.Date.isoparse('2021-12-08')
         self.assertEqual(date.year, 2021)
         self.assertEqual(date.month, 12)
@@ -380,6 +419,14 @@ class DateTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         self.assertEqual(str(date), '2021-12-08')
 
     def test_ym_isoparse(self):
+        for value in ('0000-01', '0000-01--'):
+            date = fd.partialdate.date.Date.isoparse(value)
+            self.assertEqual(date.year, 0)
+            self.assertEqual(date.month, 1)
+            self.assertEqual(date.day, None)
+            self.assertTrue(date.partial)
+            self.assertEqual(date.isoformat(), '0000-01')
+            self.assertEqual(str(date), '0000-01')
         for value in ('2021-12', '2021-12--'):
             date = fd.partialdate.date.Date.isoparse(value)
             self.assertEqual(date.year, 2021)
@@ -390,6 +437,14 @@ class DateTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
             self.assertEqual(str(date), '2021-12')
 
     def test_y_isoparse(self):
+        for value in ('0000', '0000--', '0000----'):
+            date = fd.partialdate.date.Date.isoparse(value)
+            self.assertEqual(date.year, 0)
+            self.assertEqual(date.month, None)
+            self.assertEqual(date.day, None)
+            self.assertTrue(date.partial)
+            self.assertEqual(date.isoformat(), '0000')
+            self.assertEqual(str(date), '0000')
         for value in ('2021', '2021--', '2021----'):
             date = fd.partialdate.date.Date.isoparse(value)
             self.assertEqual(date.year, 2021)

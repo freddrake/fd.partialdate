@@ -55,9 +55,9 @@ class Date:
             else:
                 raise ValueError('must specify year or day')
         if year is not None:
-            if not (1 <= year <= 9999):
+            if not (0 <= year <= 9999):
                 raise fd.partialdate.exceptions.RangeError(
-                    'year', year, 1, 9999)
+                    'year', year, 0, 9999)
         if month is None:
             if year is not None and day is not None:
                 raise ValueError('cannot specify year and day without month')
@@ -71,7 +71,7 @@ class Date:
                     'month', month, 1, 12)
             if day is not None:
                 dim = _days_in_month[month]
-                if year and year % 4 and month == 2:
+                if year is not None and year % 4 and month == 2:
                     dim -= 1
                 if not (1 <= day <= dim):
                     raise fd.partialdate.exceptions.RangeError(
@@ -116,10 +116,18 @@ class Date:
         if isinstance(other, datetime.date):
             odata = other.year, other.month, other.day
         elif isinstance(other, Date):
-            odata = other.year or -1, other.month or -1, other.day or -1
+            odata = (
+                -1 if other.year is None else other.year,
+                -1 if other.month is None else other.month,
+                -1 if other.day is None else other.day,
+            )
         else:
             return NotImplemented
-        sdata = self.year or -1, self.month or -1, self.day or -1
+        sdata = (
+            -1 if self.year is None else self.year,
+            -1 if self.month is None else self.month,
+            -1 if self.day is None else self.day,
+        )
         return sdata == odata
 
     def __lt__(self, other):
@@ -133,11 +141,24 @@ class Date:
             odata = other.year, other.month, other.day
             oparts = True, True, True
         elif isinstance(other, Date):
-            odata = other.year or -1, other.month or -1, other.day or -1
-            oparts = bool(other.year), bool(other.month), bool(other.day)
+            odata = (
+                -1 if other.year is None else other.year,
+                -1 if other.month is None else other.month,
+                -1 if other.day is None else other.day,
+            )
+            oparts = (
+                other.year is not None,
+                other.month is not None,
+                other.day is not None,
+            )
         else:
             return NotImplemented
         sparts = bool(self.year), bool(self.month), bool(self.day)
+        sparts = (
+            self.year is not None,
+            self.month is not None,
+            self.day is not None,
+        )
         if False in sparts or False in oparts:
             # No need to check for ValueError; every case will include
             # at least one True value since we disallow completely
@@ -147,14 +168,18 @@ class Date:
             if oprecision != sprecision:
                 raise ValueError('ordering not supported between'
                                  ' incompatible partial dates')
-        sdata = self.year or -1, self.month or -1, self.day or -1
+        sdata = (
+            -1 if self.year is None else self.year,
+            -1 if self.month is None else self.month,
+            -1 if self.day is None else self.day,
+        )
         return sdata < odata
 
     def isoformat(self):
         parts = [
-            (f'{self.year:04}' if self.year else '-'),
-            (f'{self.month:02}' if self.month else '-'),
-            (f'{self.day:02}' if self.day else '-'),
+            (f'{self.year:04}' if self.year is not None else '-'),
+            (f'{self.month:02}' if self.month is not None else '-'),
+            (f'{self.day:02}' if self.day is not None else '-'),
         ]
         return '-'.join(parts).rstrip('-')
 
