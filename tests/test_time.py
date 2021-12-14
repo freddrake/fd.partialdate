@@ -17,6 +17,7 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         self.assertEqual(time.hour, 21)
         self.assertEqual(time.minute, 12)
         self.assertEqual(time.second, 6)
+        self.assertEqual(time.tzinfo, None)
         self.assertFalse(time.partial)
         self.assertEqual(time.isoformat(), '211206')
 
@@ -25,6 +26,7 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         self.assertEqual(time.hour, 21)
         self.assertEqual(time.minute, 12)
         self.assertEqual(time.second, None)
+        self.assertEqual(time.tzinfo, None)
         self.assertTrue(time.partial)
         self.assertEqual(time.isoformat(), '2112')
 
@@ -33,6 +35,7 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         self.assertEqual(time.hour, 21)
         self.assertEqual(time.minute, None)
         self.assertEqual(time.second, None)
+        self.assertEqual(time.tzinfo, None)
         self.assertTrue(time.partial)
         self.assertEqual(time.isoformat(), '21')
 
@@ -41,6 +44,7 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         self.assertEqual(time.hour, None)
         self.assertEqual(time.minute, 12)
         self.assertEqual(time.second, 8)
+        self.assertEqual(time.tzinfo, None)
         self.assertTrue(time.partial)
         self.assertEqual(time.isoformat(), '-1208')
 
@@ -49,6 +53,7 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         self.assertEqual(time.hour, None)
         self.assertEqual(time.minute, None)
         self.assertEqual(time.second, 8)
+        self.assertEqual(time.tzinfo, None)
         self.assertTrue(time.partial)
         self.assertEqual(time.isoformat(), '--08')
 
@@ -251,6 +256,35 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
             self.assertLess(ptime, factory(hour, minute+1, second))
             self.assertLess(ptime, factory(hour, minute, second+1))
 
+    def test_comparison_offset_aware_naive(self):
+        factory = fd.partialdate.time.Time
+        for hms in [(1, 1, 1), (21, 11, 8), (22, 58, 58)]:
+            lhs = factory(*hms)
+            rhs = factory(*hms, tzinfo=datetime.timezone.utc)
+            self.assertIsNot(lhs, rhs)
+            self.assertNotEqual(lhs, rhs)
+
+            with self.assertRaises(TypeError) as cm:
+                lhs < rhs
+            message = str(cm.exception)
+            self.assertIn("can't order", message)
+            self.assertIn('offset-naive and offset-aware', message)
+            self.assertIn('time values', message)
+
+            with self.assertRaises(TypeError) as cm:
+                rhs < lhs
+            message = str(cm.exception)
+            self.assertIn("can't order", message)
+            self.assertIn('offset-naive and offset-aware', message)
+            self.assertIn('time values', message)
+
+            with self.assertRaises(TypeError) as cm:
+                lhs > rhs
+            message = str(cm.exception)
+            self.assertIn("can't order", message)
+            self.assertIn('offset-naive and offset-aware', message)
+            self.assertIn('time values', message)
+
     def test_comparison_partially_specified(self):
         factory = fd.partialdate.time.Time
         for hms in [(1, 1, 1), (21, 11, 8), (22, 58, 58)]:
@@ -281,12 +315,75 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
             self.assertLess(ptime, factory(minute=minute+1, second=second))
             self.assertLess(ptime, factory(minute=minute, second=second+1))
 
+            # Comparisons of partial times work with the same timezone:
+            ptime = factory(minute=minute, second=second,
+                            tzinfo=datetime.timezone.utc)
+            time = factory(minute=minute, second=second,
+                           tzinfo=datetime.timezone.utc)
+            self.assertIsNot(ptime, time)
+            self.assertEqual(ptime, time)
+            self.assertGreater(ptime, factory(minute=minute-1, second=second,
+                                              tzinfo=datetime.timezone.utc))
+            self.assertGreater(ptime, factory(minute=minute, second=second-1,
+                                              tzinfo=datetime.timezone.utc))
+            self.assertLess(ptime, factory(minute=minute+1, second=second,
+                                           tzinfo=datetime.timezone.utc))
+            self.assertLess(ptime, factory(minute=minute, second=second+1,
+                                           tzinfo=datetime.timezone.utc))
+
             ptime = factory(second=second)
             time = factory(second=second)
             self.assertIsNot(ptime, time)
             self.assertEqual(ptime, time)
             self.assertGreater(ptime, factory(second=second-1))
             self.assertLess(ptime, factory(second=second+1))
+
+    def test_comparison_complete_mixed_timezones(self):
+        timezone0 = datetime.timezone.utc
+        timezone1 = datetime.timezone(datetime.timedelta(hours=1))
+
+        lhs = fd.partialdate.time.Time(hour=1, minute=15, second=42,
+                                       tzinfo=timezone0)
+        rhs = fd.partialdate.time.Time(hour=1, minute=15, second=42,
+                                       tzinfo=timezone1)
+        assert not lhs.partial
+        assert not rhs.partial
+
+        self.assertGreater(lhs, rhs)
+        self.assertLess(rhs, lhs)
+
+    def test_comparison_partial_mixed_timezones(self):
+        timezone0 = datetime.timezone.utc
+        timezone1 = datetime.timezone(datetime.timedelta(hours=1))
+
+        lhs = fd.partialdate.time.Time(hour=1, tzinfo=timezone0)
+        rhs = fd.partialdate.time.Time(hour=1, tzinfo=timezone1)
+        assert lhs.partial
+        assert rhs.partial
+
+        with self.assertRaises(TypeError) as cm:
+            lhs < rhs
+
+        message = str(cm.exception)
+        self.assertIn("can't order partial time values", message)
+        self.assertIn('different time zones', message)
+
+    def test_comparison_mixed_partial_timezones(self):
+        timezone0 = datetime.timezone.utc
+        timezone1 = datetime.timezone(datetime.timedelta(hours=1))
+
+        lhs = fd.partialdate.time.Time(hour=1, tzinfo=timezone0)
+        rhs = fd.partialdate.time.Time(hour=1, minute=15, second=42,
+                                       tzinfo=timezone1)
+        assert lhs.partial
+        assert not rhs.partial
+
+        with self.assertRaises(TypeError) as cm:
+            lhs < rhs
+
+        message = str(cm.exception)
+        self.assertIn("can't order partial and complete time values", message)
+        self.assertIn('different time zones', message)
 
     def test_repr_positional(self):
         time = fd.partialdate.time.Time(12)
@@ -295,6 +392,11 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         self.assertEqual(repr(time), 'fd.partialdate.time.Time(12, 12)')
         time = fd.partialdate.time.Time(12, 12, 8)
         self.assertEqual(repr(time), 'fd.partialdate.time.Time(12, 12, 8)')
+        time = fd.partialdate.time.Time(12, 12, 8,
+                                        tzinfo=datetime.timezone.utc)
+        self.assertEqual(
+            repr(time),
+            'fd.partialdate.time.Time(12, 12, 8, datetime.timezone.utc)')
 
     def test_repr_keyword(self):
         time = fd.partialdate.time.Time(minute=12, second=8)
@@ -302,14 +404,29 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
                          'fd.partialdate.time.Time(minute=12, second=8)')
         time = fd.partialdate.time.Time(second=8)
         self.assertEqual(repr(time), 'fd.partialdate.time.Time(second=8)')
+        time = fd.partialdate.time.Time(second=8,
+                                        tzinfo=datetime.timezone.utc)
+        self.assertEqual(
+            repr(time),
+            'fd.partialdate.time.Time(second=8, tzinfo=datetime.timezone.utc)')
 
     def test_hms_isoparse(self):
         time = fd.partialdate.time.Time.isoparse('211208')
         self.assertEqual(time.hour, 21)
         self.assertEqual(time.minute, 12)
         self.assertEqual(time.second, 8)
+        self.assertEqual(time.tzinfo, None)
         self.assertFalse(time.partial)
         self.assertEqual(time.isoformat(), '211208')
+
+        for tzpart in ('z', 'Z', '-00', '+00', '-0000', '+0000'):
+            time = fd.partialdate.time.Time.isoparse('211208' + tzpart)
+            self.assertEqual(time.hour, 21)
+            self.assertEqual(time.minute, 12)
+            self.assertEqual(time.second, 8)
+            self.assertEqual(time.tzinfo, datetime.timezone.utc)
+            self.assertFalse(time.partial)
+            self.assertEqual(time.isoformat(), '211208Z')
 
     def test_hm_isoparse(self):
         for value in ('2112', '2112-'):
@@ -317,8 +434,18 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
             self.assertEqual(time.hour, 21)
             self.assertEqual(time.minute, 12)
             self.assertEqual(time.second, None)
+            self.assertEqual(time.tzinfo, None)
             self.assertTrue(time.partial)
             self.assertEqual(time.isoformat(), '2112')
+
+            for tzpart in ('z', 'Z', '+00', '+0000'):
+                time = fd.partialdate.time.Time.isoparse(value + tzpart)
+                self.assertEqual(time.hour, 21)
+                self.assertEqual(time.minute, 12)
+                self.assertEqual(time.second, None)
+                self.assertEqual(time.tzinfo, datetime.timezone.utc)
+                self.assertTrue(time.partial)
+                self.assertEqual(time.isoformat(), '2112Z')
 
     def test_h_isoparse(self):
         for value in ('21', '21-', '21--'):
@@ -326,6 +453,7 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
             self.assertEqual(time.hour, 21)
             self.assertEqual(time.minute, None)
             self.assertEqual(time.second, None)
+            self.assertEqual(time.tzinfo, None)
             self.assertTrue(time.partial)
             self.assertEqual(time.isoformat(), '21')
 
@@ -334,14 +462,56 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         self.assertEqual(time.hour, None)
         self.assertEqual(time.minute, 12)
         self.assertEqual(time.second, 8)
+        self.assertEqual(time.tzinfo, None)
         self.assertTrue(time.partial)
         self.assertEqual(time.isoformat(), '-1208')
+
+        time = fd.partialdate.time.Time.isoparse('-1208+01')
+        self.assertEqual(time.hour, None)
+        self.assertEqual(time.minute, 12)
+        self.assertEqual(time.second, 8)
+        self.assertEqual(
+            time.tzinfo,
+            datetime.timezone(datetime.timedelta(seconds=3600)))
+        self.assertTrue(time.partial)
+        self.assertEqual(time.isoformat(), '-1208+0100')
+
+        time = fd.partialdate.time.Time.isoparse('-1208+0130')
+        self.assertEqual(time.hour, None)
+        self.assertEqual(time.minute, 12)
+        self.assertEqual(time.second, 8)
+        self.assertEqual(
+            time.tzinfo,
+            datetime.timezone(datetime.timedelta(seconds=5400)))
+        self.assertTrue(time.partial)
+        self.assertEqual(time.isoformat(), '-1208+0130')
+
+        time = fd.partialdate.time.Time.isoparse('-1208-03')
+        self.assertEqual(time.hour, None)
+        self.assertEqual(time.minute, 12)
+        self.assertEqual(time.second, 8)
+        self.assertEqual(
+            time.tzinfo,
+            datetime.timezone(datetime.timedelta(days=-1, seconds=75600)))
+        self.assertTrue(time.partial)
+        self.assertEqual(time.isoformat(), '-1208-0300')
+
+        time = fd.partialdate.time.Time.isoparse('-1208-0310')
+        self.assertEqual(time.hour, None)
+        self.assertEqual(time.minute, 12)
+        self.assertEqual(time.second, 8)
+        self.assertEqual(
+            time.tzinfo,
+            datetime.timezone(datetime.timedelta(days=-1, seconds=75000)))
+        self.assertTrue(time.partial)
+        self.assertEqual(time.isoformat(), '-1208-0310')
 
     def test_s_isoparse(self):
         time = fd.partialdate.time.Time.isoparse('--08')
         self.assertEqual(time.hour, None)
         self.assertEqual(time.minute, None)
         self.assertEqual(time.second, 8)
+        self.assertEqual(time.tzinfo, None)
         self.assertTrue(time.partial)
         self.assertEqual(time.isoformat(), '--08')
 

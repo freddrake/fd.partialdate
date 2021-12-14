@@ -25,17 +25,39 @@ _re = r"""
             (?P<second>-|\d{2})
          )?
      )?
+    # Not implemented:  (?:[,.](?P<fractional>\d{1,6}))
+    (?P<tzinfo>[zZ]|[-+]\d{2}|[-+]\d{4})?
     $
 """
 _rx = re.compile(_re, re.VERBOSE)
 
 
+def _tzstr(tzinfo):
+    if tzinfo is None:
+        return ''
+    seconds = int(tzinfo.utcoffset(None).total_seconds())
+    if seconds < 0:
+        seconds = -seconds
+        sign = '-'
+    else:
+        sign = '+'
+    minutes = seconds // 60
+    hours = minutes // 60
+    minutes = minutes - (hours * 60)
+    seconds = seconds - (hours * 60 * 60) - (minutes * 60)
+    assert seconds == 0
+    if hours == minutes == 0:
+        return 'Z'
+    else:
+        return f'{sign}{hours:02}{minutes:02}'
+
+
 @functools.total_ordering
 class Time:
 
-    __slots__ = 'hour', 'minute', 'second', 'partial'
+    __slots__ = 'hour', 'minute', 'second', 'tzinfo', 'partial'
 
-    def __init__(self, hour=None, minute=None, second=None):
+    def __init__(self, hour=None, minute=None, second=None, tzinfo=None):
         if hour is None and second is None:
             if minute:
                 raise ValueError(
@@ -65,6 +87,7 @@ class Time:
         self.hour = hour
         self.minute = minute
         self.second = second
+        self.tzinfo = tzinfo
         # No need to check minute since if minute is None, at least one of
         # hour or second must be None.
         self.partial = hour is None or second is None
@@ -79,13 +102,14 @@ class Time:
             if value is None:
                 use_keywords = True
             elif use_keywords:
-                parts.append(f'{name}={value}')
+                parts.append(f'{name}={value!r}')
             else:
-                parts.append(str(value))
+                parts.append(repr(value))
 
         add_arg('hour', self.hour)
         add_arg('minute', self.minute)
         add_arg('second', self.second)
+        add_arg('tzinfo', self.tzinfo)
 
         return f'{cls.__module__}.{cls.__qualname__}({", ".join(parts)})'
 
@@ -97,13 +121,20 @@ class Time:
                 f" '{self.__class__.__name__}' and"
                 f" '{ocls.__module__}.{ocls.__qualname__}'")
         if isinstance(other, datetime.time):
-            odata = other.hour, other.minute, other.second, other.microsecond
+            odata = (
+                other.hour,
+                other.minute,
+                other.second,
+                other.microsecond,
+                other.tzinfo,
+            )
         elif isinstance(other, Time):
             odata = (
                 -1 if other.hour is None else other.hour,
                 -1 if other.minute is None else other.minute,
                 -1 if other.second is None else other.second,
-                0
+                0,
+                other.tzinfo,
             )
         else:
             return NotImplemented
@@ -111,7 +142,8 @@ class Time:
             -1 if self.hour is None else self.hour,
             -1 if self.minute is None else self.minute,
             -1 if self.second is None else self.second,
-            0
+            0,
+            self.tzinfo,
         )
         return sdata == odata
 
@@ -123,14 +155,21 @@ class Time:
                 f" '{self.__class__.__name__}' and"
                 f" '{ocls.__module__}.{ocls.__qualname__}'")
         if isinstance(other, datetime.time):
-            odata = other.hour, other.minute, other.second, other.microsecond
+            odata = (
+                other.hour,
+                other.minute,
+                other.second,
+                other.microsecond,
+                other.tzinfo,
+            )
             oparts = True, True, True, True
         elif isinstance(other, Time):
             odata = (
                 -1 if other.hour is None else other.hour,
                 -1 if other.minute is None else other.minute,
                 -1 if other.second is None else other.second,
-                0
+                0,
+                other.tzinfo,
             )
             oparts = (
                 other.hour is not None,
@@ -140,6 +179,14 @@ class Time:
             )
         else:
             return NotImplemented
+
+        tzinfos = [tz for tz in (self.tzinfo, other.tzinfo) if tz is not None]
+        if len(tzinfos) == 1:
+            # Referring to offset is odd, but mirrors a similar message
+            # from the standard library's datetime implementation.
+            raise TypeError(
+                "can't order offset-naive and offset-aware time values")
+
         sparts = (
             self.hour is not None,
             self.minute is not None,
@@ -155,11 +202,34 @@ class Time:
             if oprecision != sprecision:
                 raise ValueError('ordering not supported between'
                                  ' incompatible partial times')
+
+        if tzinfos and tzinfos[0] != tzinfos[1]:
+            assert len(tzinfos) == 2
+            opartial = getattr(other, 'partial', False)
+            if self.partial or opartial:
+                if self.partial and opartial:
+                    extra = ''
+                else:
+                    extra = ' and complete'
+                raise TypeError(
+                    f"can't order partial{extra} time values"
+                    f" with different time zones")
+            # Values are complete; timezones differ.  Let datetime
+            # figure out the order.
+            lh = datetime.time(
+                hour=self.hour, minute=self.minute, second=self.second,
+                tzinfo=self.tzinfo)
+            rh = datetime.time(
+                hour=other.hour, minute=other.minute, second=other.second,
+                tzinfo=other.tzinfo)
+            return lh < rh
+
         sdata = (
             -1 if self.hour is None else self.hour,
             -1 if self.minute is None else self.minute,
             -1 if self.second is None else self.second,
-            0
+            0,
+            self.tzinfo,
         )
         return sdata < odata
 
@@ -169,7 +239,7 @@ class Time:
             (f'{self.minute:02}' if self.minute is not None else '-'),
             (f'{self.second:02}' if self.second is not None else '-'),
         ]
-        return ''.join(parts).rstrip('-')
+        return ''.join(parts).rstrip('-') + _tzstr(self.tzinfo)
 
     @classmethod
     def isoparse(cls, text):
@@ -182,4 +252,26 @@ class Time:
             None if v in ('-', None) else int(v)
             for v in m.group('hour', 'minute', 'second')
         ]
-        return cls(hour=hour, minute=minute, second=second)
+        tzinfo = m.group('tzinfo')
+        if tzinfo is None:
+            pass
+        elif tzinfo in ('z', 'Z'):
+            tzinfo = datetime.timezone.utc
+        elif len(tzinfo) == 3:
+            if tzinfo in ('-00', '+00'):
+                tzinfo = datetime.timezone.utc
+            else:
+                offset = datetime.timedelta(hours=int(tzinfo))
+                tzinfo = datetime.timezone(offset)
+        else:
+            assert len(tzinfo) == 5
+            if tzinfo in ('-0000', '+0000'):
+                tzinfo = datetime.timezone.utc
+            else:
+                hours = int(tzinfo[1:3])
+                minutes = int(tzinfo[3:])
+                offset = datetime.timedelta(hours=hours, minutes=minutes)
+                if tzinfo[0] == '-':
+                    offset = -offset
+                tzinfo = datetime.timezone(offset)
+        return cls(hour=hour, minute=minute, second=second, tzinfo=tzinfo)
