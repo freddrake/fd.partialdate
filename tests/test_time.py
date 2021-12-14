@@ -338,7 +338,21 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
             self.assertGreater(ptime, factory(second=second-1))
             self.assertLess(ptime, factory(second=second+1))
 
-    def test_comparison_complete_mixed_timezones(self):
+    def test_comparison_complete_mixed_timezones_equal(self):
+        timezone0 = datetime.timezone.utc
+        timezone1 = datetime.timezone(datetime.timedelta(hours=1))
+
+        lhs = fd.partialdate.time.Time(hour=1, minute=15, second=42,
+                                       tzinfo=timezone0)
+        rhs = fd.partialdate.time.Time(hour=2, minute=15, second=42,
+                                       tzinfo=timezone1)
+        assert not lhs.partial
+        assert not rhs.partial
+
+        self.assertEqual(rhs, lhs)
+        self.assertEqual(lhs, rhs)
+
+    def test_comparison_complete_mixed_timezones_unequal(self):
         timezone0 = datetime.timezone.utc
         timezone1 = datetime.timezone(datetime.timedelta(hours=1))
 
@@ -351,6 +365,8 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
 
         self.assertGreater(lhs, rhs)
         self.assertLess(rhs, lhs)
+        self.assertNotEqual(rhs, lhs)
+        self.assertNotEqual(lhs, rhs)
 
     def test_comparison_partial_mixed_timezones(self):
         timezone0 = datetime.timezone.utc
@@ -368,6 +384,13 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         self.assertIn("can't order partial time values", message)
         self.assertIn('different time zones', message)
 
+        with self.assertRaises(TypeError) as cm:
+            lhs == rhs
+
+        message = str(cm.exception)
+        self.assertIn("can't compare partial time values", message)
+        self.assertIn('different time zones', message)
+
     def test_comparison_mixed_partial_timezones(self):
         timezone0 = datetime.timezone.utc
         timezone1 = datetime.timezone(datetime.timedelta(hours=1))
@@ -383,6 +406,14 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
 
         message = str(cm.exception)
         self.assertIn("can't order partial and complete time values", message)
+        self.assertIn('different time zones', message)
+
+        with self.assertRaises(TypeError) as cm:
+            lhs == rhs
+
+        message = str(cm.exception)
+        self.assertIn("can't compare partial and complete time values",
+                      message)
         self.assertIn('different time zones', message)
 
     def test_repr_positional(self):

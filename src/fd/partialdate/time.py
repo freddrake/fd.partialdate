@@ -138,6 +138,28 @@ class Time:
             )
         else:
             return NotImplemented
+
+        if self.tzinfo != other.tzinfo:
+            opartial = getattr(other, 'partial', False)
+            if self.partial or opartial:
+                if self.partial and opartial:
+                    extra = ''
+                else:
+                    extra = ' and complete'
+                raise TypeError(
+                    f"can't compare partial{extra} time values"
+                    f" with different time zones")
+
+            # Values are complete; timezones differ.  Let datetime
+            # figure out equality.
+            lh = datetime.time(
+                hour=self.hour, minute=self.minute, second=self.second,
+                microsecond=0, tzinfo=self.tzinfo)
+            rh = datetime.time(
+                hour=other.hour, minute=other.minute, second=other.second,
+                microsecond=odata[-2], tzinfo=other.tzinfo)
+            return lh == rh
+
         sdata = (
             -1 if self.hour is None else self.hour,
             -1 if self.minute is None else self.minute,
