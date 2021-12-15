@@ -272,10 +272,14 @@ class Time:
         )
         return sdata < odata
 
-    def isoformat(self):
+    def isoformat(self, extended=True):
         """Return an ISO 8601 formatted version of the date.
 
-        The basic format is always used.
+        :param extended:
+            Prefer the extended format, if applicable for the value.
+
+        The extended format will be preferred for complete times; the
+        basic format will always be used for partial values.
 
         """
         parts = [
@@ -283,7 +287,11 @@ class Time:
             (f'{self.minute:02}' if self.minute is not None else '-'),
             (f'{self.second:02}' if self.second is not None else '-'),
         ]
-        return ''.join(parts).rstrip('-') + _tzstr(self.tzinfo)
+        if self.partial or not extended:
+            sep = ''
+        else:
+            sep = ':'
+        return sep.join(parts).rstrip('-') + _tzstr(self.tzinfo)
 
     @classmethod
     def isoparse(cls, text: str):

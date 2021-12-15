@@ -19,7 +19,8 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         self.assertEqual(time.second, 6)
         self.assertEqual(time.tzinfo, None)
         self.assertFalse(time.partial)
-        self.assertEqual(time.isoformat(), '211206')
+        self.assertEqual(time.isoformat(), '21:12:06')
+        self.assertEqual(time.isoformat(extended=False), '211206')
 
     def test_hm_construction(self):
         time = fd.partialdate.time.Time(21, 12)
@@ -448,7 +449,8 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         self.assertEqual(time.second, 8)
         self.assertEqual(time.tzinfo, None)
         self.assertFalse(time.partial)
-        self.assertEqual(time.isoformat(), '211208')
+        self.assertEqual(time.isoformat(), '21:12:08')
+        self.assertEqual(time.isoformat(extended=False), '211208')
 
         for tzpart in ('z', 'Z', '-00', '+00', '-0000', '+0000'):
             time = fd.partialdate.time.Time.isoparse('211208' + tzpart)
@@ -457,7 +459,8 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
             self.assertEqual(time.second, 8)
             self.assertEqual(time.tzinfo, datetime.timezone.utc)
             self.assertFalse(time.partial)
-            self.assertEqual(time.isoformat(), '211208Z')
+            self.assertEqual(time.isoformat(), '21:12:08Z')
+            self.assertEqual(time.isoformat(extended=False), '211208Z')
 
     def test_hm_isoparse(self):
         for value in ('2112', '2112-'):
@@ -562,7 +565,11 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         check('junky stuff')
         check('126')
         check('126-')
+        check('12:6:-')
+        check('12:25:-')
         check('12610')
+        check('12:6:10')
         check('12106')
+        check('12:10:6')
         # All components are omitted.
         check('---')

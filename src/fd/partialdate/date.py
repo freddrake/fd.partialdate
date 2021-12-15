@@ -224,10 +224,14 @@ class Date:
         )
         return sdata < odata
 
-    def isoformat(self):
+    def isoformat(self, extended: bool = True):
         """Return an ISO 8601 formatted version of the date.
 
-        The extended format will be used for complete dates.
+        :param extended:
+            Prefer the extended format, if applicable for the value.
+
+        The extended format will be preferred for complete dates; the
+        basic format will always be used for partial values.
 
         """
         parts = [
@@ -236,8 +240,9 @@ class Date:
             (f'{self.day:02}' if self.day is not None else '-'),
         ]
         if self.month and not self.day:
+            assert self.year is not None
             return '-'.join(parts).rstrip('-')
-        if self.partial:
+        if self.partial or not extended:
             return ''.join(parts).rstrip('-')
         else:
             return '-'.join(parts).rstrip('-')

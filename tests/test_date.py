@@ -19,6 +19,7 @@ class DateTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         self.assertEqual(date.day, 6)
         self.assertFalse(date.partial)
         self.assertEqual(date.isoformat(), '0000-12-06')
+        self.assertEqual(date.isoformat(extended=False), '00001206')
         self.assertEqual(str(date), '0000-12-06')
 
         date = fd.partialdate.date.Date(2021, 12, 6)
@@ -27,6 +28,7 @@ class DateTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         self.assertEqual(date.day, 6)
         self.assertFalse(date.partial)
         self.assertEqual(date.isoformat(), '2021-12-06')
+        self.assertEqual(date.isoformat(extended=False), '20211206')
         self.assertEqual(str(date), '2021-12-06')
 
     def test_ym_construction(self):
@@ -36,6 +38,8 @@ class DateTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         self.assertEqual(date.day, None)
         self.assertTrue(date.partial)
         self.assertEqual(date.isoformat(), '0000-12')
+        # There is only one allowed representation, and it's basic.
+        self.assertEqual(date.isoformat(extended=False), '0000-12')
         self.assertEqual(str(date), '0000-12')
 
         date = fd.partialdate.date.Date(2021, 12)
@@ -44,6 +48,7 @@ class DateTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         self.assertEqual(date.day, None)
         self.assertTrue(date.partial)
         self.assertEqual(date.isoformat(), '2021-12')
+        self.assertEqual(date.isoformat(extended=False), '2021-12')
         self.assertEqual(str(date), '2021-12')
 
     def test_y_construction(self):
