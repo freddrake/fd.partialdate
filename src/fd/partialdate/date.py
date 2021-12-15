@@ -80,6 +80,7 @@ def _groups(m, *groups):
 
 @functools.total_ordering
 class Date:
+    """Date representation supporting partial values."""
 
     __slots__ = 'year', 'month', 'day', 'partial'
 
@@ -211,6 +212,11 @@ class Date:
         return sdata < odata
 
     def isoformat(self):
+        """Return an ISO 8601 formatted version of the date.
+
+        The extended format will be used for complete dates.
+
+        """
         parts = [
             (f'{self.year:04}' if self.year is not None else '-'),
             (f'{self.month:02}' if self.month is not None else '-'),
@@ -225,6 +231,13 @@ class Date:
 
     @classmethod
     def isoparse(cls, text):
+        """Parse an ISO 8601 basic or extended date representation.
+
+        Ordinal dates must include the year, and will be converted to
+        year-month-day representations assuming the propleptic Gregorian
+        calendar.
+
+        """
         for rx in _rxs:
             m = rx.match(text)
             if m is not None:

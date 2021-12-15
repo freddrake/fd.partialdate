@@ -54,6 +54,7 @@ def _tzstr(tzinfo):
 
 @functools.total_ordering
 class Time:
+    """Date representation supporting partial values."""
 
     __slots__ = 'hour', 'minute', 'second', 'tzinfo', 'partial'
 
@@ -256,6 +257,11 @@ class Time:
         return sdata < odata
 
     def isoformat(self):
+        """Return an ISO 8601 formatted version of the date.
+
+        The basic format is always used.
+
+        """
         parts = [
             (f'{self.hour:02}' if self.hour is not None else '-'),
             (f'{self.minute:02}' if self.minute is not None else '-'),
@@ -265,8 +271,9 @@ class Time:
 
     @classmethod
     def isoparse(cls, text):
+        """Parse an ISO 8601 basic time representation."""
         m = _rx.match(text)
-        # Special case for ISO 8601 date with all components omitted.
+        # Special case for ISO 8601 time with all components omitted.
         if m is None or text == '---':
             raise fd.partialdate.exceptions.ParseError(
                 'ISO 8601 time', text)
