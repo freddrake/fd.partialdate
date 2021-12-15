@@ -249,7 +249,7 @@ class Date:
         :param text:  ISO 8601 representation to convert
 
         Ordinal dates must include the year, and will be converted to
-        year-month-day representations assuming the propleptic Gregorian
+        year-month-day representations assuming the proleptic Gregorian
         calendar.
 
         """
