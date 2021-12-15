@@ -49,7 +49,6 @@ latex_documents = [
 
 autodoc_default_options = {
     'members': True,
-    'show-inheritance': True,
 }
 
 autoclass_content = 'class'

@@ -8,7 +8,9 @@
 .. autoexception:: ParseError
    :members: message, what, value
    :no-special-members:
+   :show-inheritance:
 
 .. autoexception:: RangeError
    :members: message, field, value, min, max
    :no-special-members:
+   :show-inheritance:
