@@ -16,24 +16,38 @@ import re
 import typing
 
 import fd.partialdate.exceptions
+import fd.partialdate.utils
 
 
-_re = r"""
+_re_basic = r"""
     (?P<hour>-|\d{2})
     (?:
         (?P<minute>-|\d{2})
         (?:
-            (?P<second>-|\d{2})
+            (?P<second>\d{2})
          )?
      )?
     # Not implemented:  (?:[,.](?P<fractional>\d{1,6}))
     (?P<tzinfo>[zZ]|[-+]\d{2}|[-+]\d{4})?
     $
 """
-_rx = re.compile(_re, re.VERBOSE)
+
+_re_extended = r"""
+    (?P<hour>\d{2})
+    :(?P<minute>\d{2})
+    :(?P<second>\d{2})
+    # Not implemented:  (?:[,.](?P<fractional>\d{1,6}))
+    (?P<tzinfo>[zZ]|[-+]\d{2}|[-+]\d{2}:\d{2})?
+    $
+"""
+_rx = fd.partialdate.utils.RegularExpressionGroup(
+    _re_extended,
+    _re_basic,
+    flags=re.VERBOSE,
+)
 
 
-def _tzstr(tzinfo):
+def _tzstr(tzinfo, sep):
     if tzinfo is None:
         return ''
     seconds = int(tzinfo.utcoffset(None).total_seconds())
@@ -50,7 +64,7 @@ def _tzstr(tzinfo):
     if hours == minutes == 0:
         return 'Z'
     else:
-        return f'{sign}{hours:02}{minutes:02}'
+        return f'{sign}{hours:02}{sep}{minutes:02}'
 
 
 @functools.total_ordering
@@ -291,7 +305,7 @@ class Time:
             sep = ''
         else:
             sep = ':'
-        return sep.join(parts).rstrip('-') + _tzstr(self.tzinfo)
+        return sep.join(parts).rstrip('-') + _tzstr(self.tzinfo, sep)
 
     @classmethod
     def isoparse(cls, text: str):
@@ -302,7 +316,7 @@ class Time:
         """
         m = _rx.match(text)
         # Special case for ISO 8601 time with all components omitted.
-        if m is None or text == '---':
+        if m is None:
             raise fd.partialdate.exceptions.ParseError(
                 'ISO 8601 time', text)
         hour, minute, second = [
@@ -321,7 +335,9 @@ class Time:
                 offset = datetime.timedelta(hours=int(tzinfo))
                 tzinfo = datetime.timezone(offset)
         else:
-            assert len(tzinfo) == 5
+            if ':' in tzinfo:
+                tzinfo = tzinfo.replace(':', '')
+            assert len(tzinfo) == 5, repr(tzinfo)
             if tzinfo in ('-0000', '+0000'):
                 tzinfo = datetime.timezone.utc
             else:

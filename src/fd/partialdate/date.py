@@ -14,6 +14,7 @@ import re
 import typing
 
 import fd.partialdate.exceptions
+import fd.partialdate.utils
 
 
 _days_in_month = {
@@ -64,19 +65,12 @@ _re_basic_1 = r"""
      )?
     $
 """
-_rxs = (
-    re.compile(_re_extended, re.VERBOSE),
-    re.compile(_re_basic_0, re.VERBOSE),
-    re.compile(_re_basic_1, re.VERBOSE),
+_rx = fd.partialdate.utils.RegularExpressionGroup(
+    _re_extended,
+    _re_basic_0,
+    _re_basic_1,
+    flags=re.VERBOSE,
 )
-
-
-def _groups(m, *groups):
-    for gname in groups:
-        if gname in m.re.groupindex:
-            yield m.group(gname)
-        else:
-            yield None
 
 
 @functools.total_ordering
@@ -258,15 +252,11 @@ class Date:
         calendar.
 
         """
-        for rx in _rxs:
-            m = rx.match(text)
-            if m is not None:
-                break
-        else:
+        m = _rx.match(text)
+        if m is None:
             raise fd.partialdate.exceptions.ParseError(
                 'ISO 8601 date', text)
-        year, month, day, ordinal = _groups(
-            m, 'year', 'month', 'day', 'ordinal')
+        year, month, day, ordinal = m.group('year', 'month', 'day', 'ordinal')
         if ordinal is None:
             if day is None and month == '-':
                 raise fd.partialdate.exceptions.ParseError(
