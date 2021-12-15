@@ -30,20 +30,52 @@ _days_in_month = {
     12: 31,
 }
 
-_re = r"""
-    (?P<year>-|\d{4})
+_re_extended = r"""
+    (?P<year>\d{4})
     (?:-
         (?:
             (?:
-                (?P<month>-|\d{2})
-                (?:-(?P<day>-|\d{2}))?
+                (?P<month>\d{2})
+                -(?P<day>\d{2})
              )
             | (?P<ordinal>\d{3})
          )
+     )
+    $
+"""
+
+_re_basic_0 = r"""
+    (?P<year>\d{4})
+    (?:-
+            (?P<month>\d{2})
      )?
     $
 """
-_rx = re.compile(_re, re.VERBOSE)
+
+_re_basic_1 = r"""
+    (?P<year>-|\d{4})
+    (?:
+        (?:
+            (?P<month>-|\d{2})
+            (?P<day>\d{2})?
+         )
+        | (?P<ordinal>\d{3})
+     )?
+    $
+"""
+_rxs = (
+    re.compile(_re_extended, re.VERBOSE),
+    re.compile(_re_basic_0, re.VERBOSE),
+    re.compile(_re_basic_1, re.VERBOSE),
+)
+
+
+def _groups(m, *groups):
+    for gname in groups:
+        if gname in m.re.groupindex:
+            yield m.group(gname)
+        else:
+            yield None
 
 
 @functools.total_ordering
@@ -184,18 +216,31 @@ class Date:
             (f'{self.month:02}' if self.month is not None else '-'),
             (f'{self.day:02}' if self.day is not None else '-'),
         ]
-        return '-'.join(parts).rstrip('-')
+        if self.month and not self.day:
+            return '-'.join(parts).rstrip('-')
+        if self.partial:
+            return ''.join(parts).rstrip('-')
+        else:
+            return '-'.join(parts).rstrip('-')
 
     @classmethod
     def isoparse(cls, text):
-        m = _rx.match(text)
-        # Special case for ISO 8601 date with all components omitted.
-        if m is None or text == '-----':
+        for rx in _rxs:
+            m = rx.match(text)
+            if m is not None:
+                break
+        else:
             raise fd.partialdate.exceptions.ParseError(
                 'ISO 8601 date', text)
+        year, month, day, ordinal = _groups(
+            m, 'year', 'month', 'day', 'ordinal')
+        if ordinal is None:
+            if day is None and month == '-':
+                raise fd.partialdate.exceptions.ParseError(
+                    'ISO 8601 date', text)
         year, month, day, ordinal = [
             None if v in ('-', None) else int(v)
-            for v in m.group('year', 'month', 'day', 'ordinal')
+            for v in (year, month, day, ordinal)
         ]
         if ordinal is not None:
             if year is None:
