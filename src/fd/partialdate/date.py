@@ -11,6 +11,7 @@ specified or omitted.
 import datetime
 import functools
 import re
+import typing
 
 import fd.partialdate.exceptions
 
@@ -83,6 +84,18 @@ class Date:
     """Date representation supporting partial values."""
 
     __slots__ = 'year', 'month', 'day', 'partial'
+
+    year: typing.Optional[int]
+    """Calendar year, or ``None``."""
+
+    month: typing.Optional[int]
+    """Calendar month, or ``None``."""
+
+    day: typing.Optional[int]
+    """Calendar day, or ``None``."""
+
+    partial: bool
+    """Indicates whether the value is partial (``True``) or complete."""
 
     def __init__(self, year=None, month=None, day=None):
         if year is None and day is None:
@@ -230,8 +243,10 @@ class Date:
             return '-'.join(parts).rstrip('-')
 
     @classmethod
-    def isoparse(cls, text):
+    def isoparse(cls, text: str):
         """Parse an ISO 8601 basic or extended date representation.
+
+        :param text:  ISO 8601 representation to convert
 
         Ordinal dates must include the year, and will be converted to
         year-month-day representations assuming the propleptic Gregorian

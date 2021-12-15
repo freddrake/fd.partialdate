@@ -13,6 +13,7 @@ specified or omitted.
 import datetime
 import functools
 import re
+import typing
 
 import fd.partialdate.exceptions
 
@@ -57,6 +58,21 @@ class Time:
     """Date representation supporting partial values."""
 
     __slots__ = 'hour', 'minute', 'second', 'tzinfo', 'partial'
+
+    hour: typing.Optional[int]
+    """Hour of day, or ``None``."""
+
+    minute: typing.Optional[int]
+    """Minute of hour, or ``None``."""
+
+    second: typing.Optional[int]
+    """Second of minute, or ``None``."""
+
+    tzinfo: typing.Optional[datetime.timezone]
+    """Timezone applied to time, or ``None`` for local time."""
+
+    partial: bool
+    """Indicates whether the value is partial (``True``) or complete."""
 
     def __init__(self, hour=None, minute=None, second=None, tzinfo=None):
         if hour is None and second is None:
@@ -270,8 +286,12 @@ class Time:
         return ''.join(parts).rstrip('-') + _tzstr(self.tzinfo)
 
     @classmethod
-    def isoparse(cls, text):
-        """Parse an ISO 8601 basic time representation."""
+    def isoparse(cls, text: str):
+        """Parse an ISO 8601 basic time representation.
+
+        :param text:  ISO 8601 representation to convert
+
+        """
         m = _rx.match(text)
         # Special case for ISO 8601 time with all components omitted.
         if m is None or text == '---':
