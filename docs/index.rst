@@ -7,6 +7,7 @@ as allowed for in the `ISO 8601`_ specification.
 .. toctree::
     :maxdepth: 5
 
+    introduction
     exceptions
     date
     time
