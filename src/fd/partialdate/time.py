@@ -301,11 +301,13 @@ class Time:
             (f'{self.minute:02}' if self.minute is not None else '-'),
             (f'{self.second:02}' if self.second is not None else '-'),
         ]
-        if self.partial or not extended:
+        while parts[-1] == '-':
+            del parts[-1]
+        if self.hour is None or self.minute is None or not extended:
             sep = ''
         else:
             sep = ':'
-        return sep.join(parts).rstrip('-') + _tzstr(self.tzinfo, sep)
+        return sep.join(parts) + _tzstr(self.tzinfo, sep)
 
     @classmethod
     def isoparse(cls, text: str):
