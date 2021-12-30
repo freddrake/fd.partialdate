@@ -12,7 +12,6 @@ specified or omitted.
 
 import datetime
 import functools
-import re
 import typing
 
 import fd.partialdate.exceptions
@@ -45,8 +44,34 @@ _re_extended = r"""
 _rx = fd.partialdate.utils.RegularExpressionGroup(
     _re_extended,
     _re_basic,
-    flags=re.VERBOSE,
 )
+
+
+def _tzinfo(tzstr=None):
+    if tzstr is None:
+        tzinfo = None
+    elif tzstr in ('z', 'Z'):
+        tzinfo = datetime.timezone.utc
+    elif len(tzstr) == 3:
+        if tzstr in ('-00', '+00'):
+            tzinfo = datetime.timezone.utc
+        else:
+            offset = datetime.timedelta(hours=int(tzstr))
+            tzinfo = datetime.timezone(offset)
+    else:
+        if ':' in tzstr:
+            tzstr = tzstr.replace(':', '')
+        assert len(tzstr) == 5, repr(tzstr)
+        if tzstr in ('-0000', '+0000'):
+            tzinfo = datetime.timezone.utc
+        else:
+            hours = int(tzstr[1:3])
+            minutes = int(tzstr[3:])
+            offset = datetime.timedelta(hours=hours, minutes=minutes)
+            if tzstr[0] == '-':
+                offset = -offset
+            tzinfo = datetime.timezone(offset)
+    return tzinfo
 
 
 def _tzstr(tzinfo, sep):
@@ -323,7 +348,6 @@ class Time:
 
         """
         m = _rx.match(text)
-        # Special case for ISO 8601 time with all components omitted.
         if m is None:
             raise fd.partialdate.exceptions.ParseError(
                 'ISO 8601 time', text)
@@ -331,28 +355,5 @@ class Time:
             None if v in ('-', None) else int(v)
             for v in m.group('hour', 'minute', 'second')
         ]
-        tzinfo = m.group('tzinfo')
-        if tzinfo is None:
-            pass
-        elif tzinfo in ('z', 'Z'):
-            tzinfo = datetime.timezone.utc
-        elif len(tzinfo) == 3:
-            if tzinfo in ('-00', '+00'):
-                tzinfo = datetime.timezone.utc
-            else:
-                offset = datetime.timedelta(hours=int(tzinfo))
-                tzinfo = datetime.timezone(offset)
-        else:
-            if ':' in tzinfo:
-                tzinfo = tzinfo.replace(':', '')
-            assert len(tzinfo) == 5, repr(tzinfo)
-            if tzinfo in ('-0000', '+0000'):
-                tzinfo = datetime.timezone.utc
-            else:
-                hours = int(tzinfo[1:3])
-                minutes = int(tzinfo[3:])
-                offset = datetime.timedelta(hours=hours, minutes=minutes)
-                if tzinfo[0] == '-':
-                    offset = -offset
-                tzinfo = datetime.timezone(offset)
+        tzinfo = _tzinfo(m.group('tzinfo'))
         return cls(hour=hour, minute=minute, second=second, tzinfo=tzinfo)

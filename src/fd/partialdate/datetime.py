@@ -10,7 +10,58 @@ import functools
 import typing
 
 import fd.partialdate.date
+import fd.partialdate.exceptions
 import fd.partialdate.time
+import fd.partialdate.utils
+
+
+_re_basic = r"""
+    (?P<year>-|\d{4})
+    (?:
+        (?:
+            (?P<month>-|\d{2})
+            (?P<day>\d{2})?
+         )
+        | (?P<ordinal>\d{3})
+     )?
+    (?:T|t|\ )
+    (?P<hour>-|\d{2})
+    (?:
+        (?P<minute>-|\d{2})
+        (?:
+            (?P<second>\d{2})
+         )?
+     )?
+    # Not implemented:  (?:[,.](?P<fractional>\d{1,6}))
+    (?P<tzinfo>[zZ]|[-+]\d{2}|[-+]\d{4})?
+    $
+"""
+
+_re_extended = r"""
+    (?P<year>\d{4})
+    (?:-
+        (?:
+            (?:
+                (?P<month>\d{2})
+                -(?P<day>\d{2})
+             )
+            | (?P<ordinal>\d{3})
+         )
+     )
+    (?:T|t|\ )
+    (?P<hour>\d{2})
+    :(?P<minute>\d{2})
+    (?:
+        :(?P<second>\d{2})
+     )?
+    # Not implemented:  (?:[,.](?P<fractional>\d{1,6}))
+    (?P<tzinfo>[zZ]|[-+]\d{2}|[-+]\d{2}:\d{2})?
+    $
+"""
+_rx = fd.partialdate.utils.RegularExpressionGroup(
+    _re_extended,
+    _re_basic,
+)
 
 
 @functools.total_ordering
@@ -203,3 +254,36 @@ class Datetime:
             extended = ':' in time
         date = self._date.isoformat(extended=extended)
         return f'{date}{sep}{time}'
+
+    @classmethod
+    def isoparse(cls, text: str):
+        """Parse an ISO 8601 basic or extended date representation.
+
+        :param text:  ISO 8601 representation to convert
+
+        Ordinal dates must include the year, and will be converted to
+        year-month-day representations assuming the proleptic Gregorian
+        calendar.
+
+        """
+        m = _rx.match(text)
+        if m is None:
+            raise fd.partialdate.exceptions.ParseError(
+                'ISO 8601 datetime', text)
+        year, month, day, ordinal = m.group('year', 'month', 'day', 'ordinal')
+        hour, minute, second = m.group('hour', 'minute', 'second')
+        if ordinal is None:
+            if day is None and month == '-':
+                raise fd.partialdate.exceptions.ParseError(
+                    'ISO 8601 datetime', text)
+        year, month, day, ordinal, hour, minute, second = [
+            None if v in ('-', None) else int(v)
+            for v in (year, month, day, ordinal, hour, minute, second)
+        ]
+        if ordinal is not None:
+            month, day = fd.partialdate.date._ordinal2md(
+                'ISO 8601 datetime', text, year, ordinal)
+        tzinfo = fd.partialdate.time._tzinfo(m.group('tzinfo'))
+        return cls(year=year, month=month, day=day,
+                   hour=hour, minute=minute, second=second,
+                   tzinfo=tzinfo)

@@ -393,6 +393,7 @@ class DateTestCase(
             self.assertEqual(date.isoformat(), '2001-03-01')
             self.assertEqual(str(date), '2001-03-01')
 
+        # Leap years:
         for value, oday in {'0000-367': 367, '1960-999': 999}.items():
             for value in (value, value.replace('-', '')):
                 with self.assert_range_error() as cm:
@@ -402,6 +403,7 @@ class DateTestCase(
                 self.assertEqual(cm.exception.max, 366)
                 self.assertEqual(cm.exception.value, oday)
 
+        # Non-leap years:
         for value, oday in {'0001-366': 366, '1961-999': 999,
                             '9999-999': 999}.items():
             for value in (value, value.replace('-', '')):

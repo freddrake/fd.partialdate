@@ -10,7 +10,6 @@ specified or omitted.
 
 import datetime
 import functools
-import re
 import typing
 
 import fd.partialdate.exceptions
@@ -69,8 +68,27 @@ _rx = fd.partialdate.utils.RegularExpressionGroup(
     _re_extended,
     _re_basic_0,
     _re_basic_1,
-    flags=re.VERBOSE,
 )
+
+
+def _ordinal2md(what, text, year, ordinal):
+    if year is None:
+        raise fd.partialdate.exceptions.ParseError(what, text)
+    isleap = (year % 4) == 0
+    dims = sorted(_days_in_month.items())
+    remaining = ordinal
+    while dims:
+        month, dim = dims.pop(0)
+        if month == 2 and not isleap:
+            dim -= 1
+        if remaining <= dim:
+            day = remaining
+            break
+        remaining -= dim
+    else:
+        raise fd.partialdate.exceptions.RangeError(
+            'ordinal day', ordinal, 1, 365 + isleap)
+    return month, day
 
 
 @functools.total_ordering
@@ -266,23 +284,7 @@ class Date:
             for v in (year, month, day, ordinal)
         ]
         if ordinal is not None:
-            if year is None:
-                raise fd.partialdate.exceptions.ParseError(
-                    'ISO 8601 date', text)
-            isleap = (year % 4) == 0
-            dims = sorted(_days_in_month.items())
-            remaining = ordinal
-            while dims:
-                month, dim = dims.pop(0)
-                if month == 2 and not isleap:
-                    dim -= 1
-                if remaining <= dim:
-                    day = remaining
-                    break
-                remaining -= dim
-            else:
-                raise fd.partialdate.exceptions.RangeError(
-                    'ordinal day', ordinal, 1, 365 + isleap)
+            month, day = _ordinal2md('ISO 8601 date', text, year, ordinal)
         return cls(year=year, month=month, day=day)
 
 
