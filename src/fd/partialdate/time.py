@@ -35,7 +35,9 @@ _re_basic = r"""
 _re_extended = r"""
     (?P<hour>\d{2})
     :(?P<minute>\d{2})
-    :(?P<second>\d{2})
+    (?:
+        :(?P<second>\d{2})
+     )?
     # Not implemented:  (?:[,.](?P<fractional>\d{1,6}))
     (?P<tzinfo>[zZ]|[-+]\d{2}|[-+]\d{2}:\d{2})?
     $
@@ -69,7 +71,11 @@ def _tzstr(tzinfo, sep):
 
 @functools.total_ordering
 class Time:
-    """Date representation supporting partial values."""
+    """Date representation supporting partial values.
+
+    Leap seconds are not supported.
+
+    """
 
     __slots__ = 'hour', 'minute', 'second', 'tzinfo', 'partial'
 
@@ -287,7 +293,7 @@ class Time:
         return sdata < odata
 
     def isoformat(self, extended=True):
-        """Return an ISO 8601 formatted version of the date.
+        """Return an ISO 8601 formatted version of the time.
 
         :param extended:
             Prefer the extended format, if applicable for the value.
@@ -301,13 +307,13 @@ class Time:
             (f'{self.minute:02}' if self.minute is not None else '-'),
             (f'{self.second:02}' if self.second is not None else '-'),
         ]
-        while parts[-1] == '-':
-            del parts[-1]
-        if self.hour is None or self.minute is None or not extended:
+        if parts[2] == '-':
+            del parts[2]
+        if '-' in parts or not extended:
             sep = ''
         else:
             sep = ':'
-        return sep.join(parts) + _tzstr(self.tzinfo, sep)
+        return sep.join(parts).rstrip('-') + _tzstr(self.tzinfo, sep)
 
     @classmethod
     def isoparse(cls, text: str):

@@ -10,6 +10,7 @@ as allowed for in the `ISO 8601`_ specification.
     introduction
     exceptions
     date
+    datetime
     time
 
 

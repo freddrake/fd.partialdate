@@ -10,7 +10,12 @@ import fd.partialdate.time
 import tests.utils
 
 
-class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
+class TimeTestCase(
+        tests.utils.AssertionHelpers,
+        tests.utils.TimeRangeChecks,
+        unittest.TestCase):
+
+    factory = fd.partialdate.time.Time
 
     def test_hms_construction(self):
         time = fd.partialdate.time.Time(21, 12, 6)
@@ -183,56 +188,6 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         self.assertEqual(str(cm.exception),
                          'must specify hour or second')
 
-    def test_hour_range_check(self):
-        for bad_hour in (-42, -2, -1, 24, 25, 10000, 424242):
-            with self.assert_range_error() as cm:
-                fd.partialdate.time.Time(hour=bad_hour)
-            message = str(cm.exception)
-            self.assertIn('hour is out of range [0..23]', message)
-
-    def test_minute_range_check(self):
-        for bad_minute in (-42, -2, -1, 60, 61, 10000):
-            with self.assert_range_error() as cm:
-                fd.partialdate.time.Time(hour=21, minute=bad_minute)
-            message = str(cm.exception)
-            self.assertIn('minute is out of range [0..59]', message)
-
-    def test_second_range_check_fully_specified(self):
-        for bad_second in (-42, -2, -1, 60, 61, 10000):
-            with self.assert_range_error() as cm:
-                fd.partialdate.time.Time(hour=21, minute=12,
-                                         second=bad_second)
-            message = str(cm.exception)
-            self.assertIn('second is out of range [0..59]', message)
-
-    def test_second_range_check_unspecified_hour(self):
-        for minute in (1, 3, 5, 7, 8, 10, 12):
-            time = fd.partialdate.time.Time(None, minute, 59)
-            self.assertEqual(time.hour, None)
-            self.assertEqual(time.minute, minute)
-            self.assertEqual(time.second, 59)
-
-            for bad_second in (-42, -2, -1, 60, 61, 10000):
-                with self.assert_range_error() as cm:
-                    fd.partialdate.time.Time(
-                        hour=None, minute=minute, second=bad_second)
-                message = str(cm.exception)
-                self.assertIn('second is out of range [0..59]', message)
-
-    def test_second_range_check_unspecified_hour_minute(self):
-        for second in (1, 30, 31, 59):
-            time = fd.partialdate.time.Time(None, None, second)
-            self.assertEqual(time.hour, None)
-            self.assertEqual(time.minute, None)
-            self.assertEqual(time.second, second)
-
-        for bad_second in (-42, -2, -1, 60, 61, 10000):
-            with self.assert_range_error() as cm:
-                fd.partialdate.time.Time(hour=None, minute=None,
-                                         second=bad_second)
-            message = str(cm.exception)
-            self.assertIn('second is out of range [0..59]', message)
-
     def test_rando_comparison_fully_specified(self):
         for hms in [(2, 2, 2), (21, 11, 8), (23, 59, 59)]:
             ptime = fd.partialdate.time.Time(*hms)
@@ -289,18 +244,18 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
             self.assertIn('ordering not supported', message)
 
     def test_time_comparison_fully_specified(self):
-        factory = datetime.time
+        alt_factory = datetime.time
         for hms in [(2, 2, 2), (21, 11, 8), (22, 58, 58)]:
             hour, minute, second = hms
             ptime = fd.partialdate.time.Time(*hms)
-            time = factory(*hms)
+            time = alt_factory(*hms)
             self.assertEqual(ptime, time)
-            self.assertGreater(ptime, factory(hour-1, minute, second))
-            self.assertGreater(ptime, factory(hour, minute-1, second))
-            self.assertGreater(ptime, factory(hour, minute, second-1))
-            self.assertLess(ptime, factory(hour+1, minute, second))
-            self.assertLess(ptime, factory(hour, minute+1, second))
-            self.assertLess(ptime, factory(hour, minute, second+1))
+            self.assertGreater(ptime, alt_factory(hour-1, minute, second))
+            self.assertGreater(ptime, alt_factory(hour, minute-1, second))
+            self.assertGreater(ptime, alt_factory(hour, minute, second-1))
+            self.assertLess(ptime, alt_factory(hour+1, minute, second))
+            self.assertLess(ptime, alt_factory(hour, minute+1, second))
+            self.assertLess(ptime, alt_factory(hour, minute, second+1))
 
     # Partial times sort lower than fully specified times, where
     # most-significant bits don't order things.
@@ -308,31 +263,31 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
     # Where most-significant bits aren't aligned, ValueError is raised.
 
     def test_time_comparison_h_specified(self):
-        factory = datetime.time
+        alt_factory = datetime.time
         for hms in [(0, 0, 0), (2, 2, 2), (21, 11, 8), (23, 59, 59)]:
             hour, minute, second = hms
             ptime = fd.partialdate.time.Time(hour)
-            time = factory(*hms)
+            time = alt_factory(*hms)
             self.assertNotEqual(time, ptime)
             self.assertGreater(time, ptime)
             self.assertLess(ptime, time)
 
     def test_time_comparison_hm_specified(self):
-        factory = datetime.time
+        alt_factory = datetime.time
         for hms in [(0, 0, 0), (2, 2, 2), (21, 11, 8), (23, 59, 59)]:
             hour, minute, second = hms
             ptime = fd.partialdate.time.Time(hour, minute)
-            time = factory(*hms)
+            time = alt_factory(*hms)
             self.assertNotEqual(time, ptime)
             self.assertGreater(time, ptime)
             self.assertLess(ptime, time)
 
     def test_time_comparison_ms_specified(self):
-        factory = datetime.time
+        alt_factory = datetime.time
         for hms in [(0, 0, 0), (2, 2, 2), (21, 11, 8), (22, 58, 58)]:
             hour, minute, second = hms
             ptime = fd.partialdate.time.Time(minute=minute, second=second)
-            time = factory(*hms)
+            time = alt_factory(*hms)
             self.assertNotEqual(time, ptime)
 
             with self.assertRaises(ValueError) as cm:
@@ -350,25 +305,24 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
                 'ordering not supported between incompatible partial times')
 
     def test_comparison_fully_specified(self):
-        factory = fd.partialdate.time.Time
+        alt_factory = fd.partialdate.time.Time
         for hms in [(1, 1, 1), (21, 11, 8), (22, 58, 58)]:
             hour, minute, second = hms
             ptime = fd.partialdate.time.Time(*hms)
-            time = factory(*hms)
+            time = alt_factory(*hms)
             self.assertIsNot(ptime, time)
             self.assertEqual(ptime, time)
-            self.assertGreater(ptime, factory(hour-1, minute, second))
-            self.assertGreater(ptime, factory(hour, minute-1, second))
-            self.assertGreater(ptime, factory(hour, minute, second-1))
-            self.assertLess(ptime, factory(hour+1, minute, second))
-            self.assertLess(ptime, factory(hour, minute+1, second))
-            self.assertLess(ptime, factory(hour, minute, second+1))
+            self.assertGreater(ptime, alt_factory(hour-1, minute, second))
+            self.assertGreater(ptime, alt_factory(hour, minute-1, second))
+            self.assertGreater(ptime, alt_factory(hour, minute, second-1))
+            self.assertLess(ptime, alt_factory(hour+1, minute, second))
+            self.assertLess(ptime, alt_factory(hour, minute+1, second))
+            self.assertLess(ptime, alt_factory(hour, minute, second+1))
 
     def test_comparison_offset_aware_naive(self):
-        factory = fd.partialdate.time.Time
         for hms in [(1, 1, 1), (21, 11, 8), (22, 58, 58)]:
-            lhs = factory(*hms)
-            rhs = factory(*hms, tzinfo=datetime.timezone.utc)
+            lhs = self.factory(*hms)
+            rhs = self.factory(*hms, tzinfo=datetime.timezone.utc)
             self.assertIsNot(lhs, rhs)
             self.assertNotEqual(lhs, rhs)
 
@@ -450,10 +404,8 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         timezone0 = datetime.timezone.utc
         timezone1 = datetime.timezone(datetime.timedelta(hours=1))
 
-        lhs = fd.partialdate.time.Time(hour=1, minute=15, second=42,
-                                       tzinfo=timezone0)
-        rhs = fd.partialdate.time.Time(hour=2, minute=15, second=42,
-                                       tzinfo=timezone1)
+        lhs = self.factory(hour=1, minute=15, second=42, tzinfo=timezone0)
+        rhs = self.factory(hour=2, minute=15, second=42, tzinfo=timezone1)
         assert not lhs.partial
         assert not rhs.partial
 
@@ -464,10 +416,8 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         timezone0 = datetime.timezone.utc
         timezone1 = datetime.timezone(datetime.timedelta(hours=1))
 
-        lhs = fd.partialdate.time.Time(hour=1, minute=15, second=42,
-                                       tzinfo=timezone0)
-        rhs = fd.partialdate.time.Time(hour=1, minute=15, second=42,
-                                       tzinfo=timezone1)
+        lhs = self.factory(hour=1, minute=15, second=42, tzinfo=timezone0)
+        rhs = self.factory(hour=1, minute=15, second=42, tzinfo=timezone1)
         assert not lhs.partial
         assert not rhs.partial
 
@@ -480,8 +430,8 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         timezone0 = datetime.timezone.utc
         timezone1 = datetime.timezone(datetime.timedelta(hours=1))
 
-        lhs = fd.partialdate.time.Time(hour=1, tzinfo=timezone0)
-        rhs = fd.partialdate.time.Time(hour=1, tzinfo=timezone1)
+        lhs = self.factory(hour=1, tzinfo=timezone0)
+        rhs = self.factory(hour=1, tzinfo=timezone1)
         assert lhs.partial
         assert rhs.partial
 
@@ -503,9 +453,8 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         timezone0 = datetime.timezone.utc
         timezone1 = datetime.timezone(datetime.timedelta(hours=1))
 
-        lhs = fd.partialdate.time.Time(hour=1, tzinfo=timezone0)
-        rhs = fd.partialdate.time.Time(hour=1, minute=15, second=42,
-                                       tzinfo=timezone1)
+        lhs = self.factory(hour=1, tzinfo=timezone0)
+        rhs = self.factory(hour=1, minute=15, second=42, tzinfo=timezone1)
         assert lhs.partial
         assert not rhs.partial
 
@@ -589,7 +538,7 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
             self.assertEqual(time.isoformat(), '21:12:08Z')
             self.assertEqual(time.isoformat(extended=False), '211208Z')
 
-    def test_hm_isoparse(self):
+    def test_hm_basic_isoparse(self):
         time = fd.partialdate.time.Time.isoparse('2112')
         self.assertEqual(time.hour, 21)
         self.assertEqual(time.minute, 12)
@@ -601,6 +550,26 @@ class TimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
 
         for tzpart in ('z', 'Z', '+00', '+0000'):
             time = fd.partialdate.time.Time.isoparse('2112' + tzpart)
+            self.assertEqual(time.hour, 21)
+            self.assertEqual(time.minute, 12)
+            self.assertEqual(time.second, None)
+            self.assertEqual(time.tzinfo, datetime.timezone.utc)
+            self.assertTrue(time.partial)
+            self.assertEqual(time.isoformat(), '21:12Z')
+            self.assertEqual(time.isoformat(extended=False), '2112Z')
+
+    def test_hm_extended_isoparse(self):
+        time = fd.partialdate.time.Time.isoparse('21:12')
+        self.assertEqual(time.hour, 21)
+        self.assertEqual(time.minute, 12)
+        self.assertEqual(time.second, None)
+        self.assertEqual(time.tzinfo, None)
+        self.assertTrue(time.partial)
+        self.assertEqual(time.isoformat(), '21:12')
+        self.assertEqual(time.isoformat(extended=False), '2112')
+
+        for tzpart in ('z', 'Z', '+00', '+00:00'):
+            time = fd.partialdate.time.Time.isoparse('21:12' + tzpart)
             self.assertEqual(time.hour, 21)
             self.assertEqual(time.minute, 12)
             self.assertEqual(time.second, None)
