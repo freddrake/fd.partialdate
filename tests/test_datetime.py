@@ -637,9 +637,12 @@ class DatetimeTestCase(tests.utils.AssertionHelpers, unittest.TestCase):
         check('12:46:10+0030')
         check('12106')
         check('12:10:6')
+        check('-42')
 
         # Both components present, but still an illegal value:
-        check('2012-T1337')
+        check('2021-T1337')
+        check('2021-12-30T1337')
+        check('20211230T13:37')
 
         # All components are omitted.
         check('-----T---')

@@ -18,14 +18,27 @@ import fd.partialdate.exceptions
 import fd.partialdate.utils
 
 
-_re_basic = r"""
-    (?P<hour>-|\d{2})
+# hh, hhmm, hhmmss
+_re_basic_1 = r"""
+    (?P<hour>\d{2})
     (?:
-        (?P<minute>-|\d{2})
+        (?P<minute>\d{2})
         (?:
             (?P<second>\d{2})
          )?
      )?
+    # Not implemented:  (?:[,.](?P<fractional>\d{1,6}))
+    (?P<tzinfo>[zZ]|[-+]\d{2}|[-+]\d{4})?
+    $
+"""
+
+# -mmss, --ss
+_re_basic_2 = r"""
+    (?P<hour>-)
+    (?:
+        (?P<minute>-|\d{2})
+        (?P<second>\d{2})
+     )
     # Not implemented:  (?:[,.](?P<fractional>\d{1,6}))
     (?P<tzinfo>[zZ]|[-+]\d{2}|[-+]\d{4})?
     $
@@ -43,7 +56,8 @@ _re_extended = r"""
 """
 _rx = fd.partialdate.utils.RegularExpressionGroup(
     _re_extended,
-    _re_basic,
+    _re_basic_1,
+    _re_basic_2,
 )
 
 

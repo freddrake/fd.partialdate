@@ -670,5 +670,7 @@ class TimeTestCase(
         check('12:46:10+0030')
         check('12106')
         check('12:10:6')
+        check('-42')
+
         # All components are omitted.
         check('---')

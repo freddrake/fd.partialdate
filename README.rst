@@ -6,9 +6,12 @@ fd.partialdate - library for partial date/time values
 possibly partial dates and times, where missing portions may be omitted
 at either the least-significant or most-significant bits.  (For example,
 a date might include just the year, the year and month, or the month and
-day, but will never be missing the month but not the day.)
+day, but will never be the year and day without the month.)
 
-Serialization only supports the expanded format from ISO 8601.
+Parsing supports both the basic and extended formats from ISO 8601.
+Serialization uses the extended formats where possible, falling back to
+the basic format where not.  Callers can request that the basic format
+always be used.
 
 
 Release history
